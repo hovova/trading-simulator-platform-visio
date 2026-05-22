@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific secrets and local files
+backend/.env
+backend/venv/
+backend/__pycache__/
+*.db
