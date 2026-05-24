@@ -1,21 +1,14 @@
-import os
-import requests
 from fastapi import FastAPI
-from pydantic import BaseModel
-from dotenv import load_dotenv
 
+from market_data import fetch_quote, fetch_price
+from models import TradeRequest
 from portfolio import get_portfolio, buy_stock, sell_stock, get_trades
 
-load_dotenv()
-
-app = FastAPI()
-
-FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY")
-
-
-class TradeRequest(BaseModel):
-    symbol: str
-    quantity: int
+app = FastAPI(
+    title="Trading Simulator Platform API",
+    description="A paper trading simulator backend using market price data.",
+    version="0.1.0"
+)
 
 
 @app.get("/")
@@ -23,57 +16,9 @@ def home():
     return {"message": "Trading Simulator Platform API is running"}
 
 
-def fetch_price(symbol: str):
-    if not FINNHUB_API_KEY:
-        return None
-
-    url = "https://finnhub.io/api/v1/quote"
-    params = {
-        "symbol": symbol.upper(),
-        "token": FINNHUB_API_KEY
-    }
-
-    response = requests.get(url, params=params)
-
-    if response.status_code != 200:
-        return None
-
-    data = response.json()
-    return data.get("c")
-
-
 @app.get("/quote/{symbol}")
 def get_quote(symbol: str):
-    if not FINNHUB_API_KEY:
-        return {
-            "error": "Finnhub API key is missing. Check backend/.env."
-        }
-
-    url = "https://finnhub.io/api/v1/quote"
-    params = {
-        "symbol": symbol.upper(),
-        "token": FINNHUB_API_KEY
-    }
-
-    response = requests.get(url, params=params)
-
-    if response.status_code != 200:
-        return {
-            "error": "Could not fetch stock price",
-            "status_code": response.status_code,
-            "details": response.text
-        }
-
-    data = response.json()
-
-    return {
-        "symbol": symbol.upper(),
-        "current_price": data.get("c"),
-        "high_price": data.get("h"),
-        "low_price": data.get("l"),
-        "open_price": data.get("o"),
-        "previous_close": data.get("pc")
-    }
+    return fetch_quote(symbol)
 
 
 @app.get("/portfolio")
