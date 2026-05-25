@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from database import initialise_database
 from market_data import fetch_quote, fetch_price
 from models import TradeRequest
 from portfolio import get_portfolio, buy_stock, sell_stock, get_trades
@@ -9,6 +10,11 @@ app = FastAPI(
     description="A paper trading simulator backend using market price data.",
     version="0.1.0"
 )
+
+
+@app.on_event("startup")
+def startup_event():
+    initialise_database()
 
 
 @app.get("/")
