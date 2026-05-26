@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from database import get_connection
+from market_data import fetch_price
 
 
 def get_portfolio():
@@ -9,6 +10,16 @@ def get_portfolio():
 
     cursor.execute("SELECT cash FROM account WHERE id = 1")
     account = cursor.fetchone()
+
+    if account is None:
+        cursor.execute(
+            "INSERT INTO account (id, cash) VALUES (1, ?)",
+            (100000.00,)
+        )
+        connection.commit()
+
+        cursor.execute("SELECT cash FROM account WHERE id = 1")
+        account = cursor.fetchone()
 
     cursor.execute("SELECT symbol, quantity, average_price FROM holdings")
     holdings_rows = cursor.fetchall()
@@ -22,13 +33,54 @@ def get_portfolio():
 
     connection.close()
 
+    cash = round(account["cash"], 2)
     holdings = {}
 
+    total_market_value = 0
+    total_cost_basis = 0
+
     for row in holdings_rows:
-        holdings[row["symbol"]] = {
-            "quantity": row["quantity"],
-            "average_price": row["average_price"]
+        symbol = row["symbol"]
+        quantity = row["quantity"]
+        average_price = row["average_price"]
+
+        current_price = fetch_price(symbol)
+
+        if current_price is None:
+            current_price = average_price
+
+        market_value = round(quantity * current_price, 2)
+        cost_basis = round(quantity * average_price, 2)
+        unrealised_pnl = round(market_value - cost_basis, 2)
+
+        if cost_basis > 0:
+            unrealised_return_percent = round((unrealised_pnl / cost_basis) * 100, 2)
+        else:
+            unrealised_return_percent = 0
+
+        total_market_value += market_value
+        total_cost_basis += cost_basis
+
+        holdings[symbol] = {
+            "quantity": quantity,
+            "average_price": average_price,
+            "current_price": current_price,
+            "market_value": market_value,
+            "cost_basis": cost_basis,
+            "unrealised_pnl": unrealised_pnl,
+            "unrealised_return_percent": unrealised_return_percent
         }
+
+    total_portfolio_value = round(cash + total_market_value, 2)
+    total_unrealised_pnl = round(total_market_value - total_cost_basis, 2)
+
+    if total_cost_basis > 0:
+        total_unrealised_return_percent = round(
+            (total_unrealised_pnl / total_cost_basis) * 100,
+            2
+        )
+    else:
+        total_unrealised_return_percent = 0
 
     trades = []
 
@@ -43,8 +95,15 @@ def get_portfolio():
         })
 
     return {
-        "cash": account["cash"],
+        "cash": cash,
         "holdings": holdings,
+        "summary": {
+            "total_market_value": round(total_market_value, 2),
+            "total_cost_basis": round(total_cost_basis, 2),
+            "total_portfolio_value": total_portfolio_value,
+            "total_unrealised_pnl": total_unrealised_pnl,
+            "total_unrealised_return_percent": total_unrealised_return_percent
+        },
         "trades": trades
     }
 
