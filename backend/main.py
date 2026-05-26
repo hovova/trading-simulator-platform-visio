@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import initialise_database
 from market_data import fetch_quote, fetch_price
@@ -9,6 +10,17 @@ app = FastAPI(
     title="Trading Simulator Platform API",
     description="A paper trading simulator backend using market price data.",
     version="0.1.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
