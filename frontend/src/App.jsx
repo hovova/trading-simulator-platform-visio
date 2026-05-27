@@ -30,24 +30,85 @@ function App() {
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [tradeSymbol, setTradeSymbol] = useState("AAPL");
+  const [tradeQuantity, setTradeQuantity] = useState(1);
+  const [tradeLoading, setTradeLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+
   async function fetchPortfolio() {
     try {
       const response = await axios.get(`${API_BASE_URL}/portfolio`);
       setPortfolio(response.data);
     } catch (error) {
       console.error("Error fetching portfolio:", error);
+      setMessage({
+        type: "error",
+        text: "Could not load portfolio. Check that the backend is running.",
+      });
     }
   }
 
   async function fetchQuote() {
     try {
       setLoading(true);
+      setMessage(null);
+
       const response = await axios.get(`${API_BASE_URL}/quote/${symbol}`);
+
+      if (response.data.error) {
+        setMessage({
+          type: "error",
+          text: response.data.error,
+        });
+        return;
+      }
+
       setQuote(response.data);
     } catch (error) {
       console.error("Error fetching quote:", error);
+      setMessage({
+        type: "error",
+        text: "Could not fetch quote. Check ticker or backend server.",
+      });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function placeTrade(type) {
+    try {
+      setTradeLoading(true);
+      setMessage(null);
+
+      const endpoint = type === "BUY" ? "/buy" : "/sell";
+
+      const response = await axios.post(`${API_BASE_URL}${endpoint}`, {
+        symbol: tradeSymbol,
+        quantity: Number(tradeQuantity),
+      });
+
+      if (response.data.error) {
+        setMessage({
+          type: "error",
+          text: response.data.error,
+        });
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: response.data.message,
+      });
+
+      await fetchPortfolio();
+    } catch (error) {
+      console.error("Error placing trade:", error);
+      setMessage({
+        type: "error",
+        text: "Trade failed. Check backend server and try again.",
+      });
+    } finally {
+      setTradeLoading(false);
     }
   }
 
@@ -69,12 +130,22 @@ function App() {
       </header>
 
       <main className="dashboard">
+        {message && (
+          <div className={`alert ${message.type}`}>
+            {message.text}
+          </div>
+        )}
+
         <section className="card">
           <div className="card-header">
             <div>
               <h2>Portfolio Summary</h2>
               <p className="muted">Live valuation based on current market prices.</p>
             </div>
+
+            <button className="secondary-button" onClick={fetchPortfolio}>
+              Refresh
+            </button>
           </div>
 
           {portfolio ? (
@@ -110,54 +181,104 @@ function App() {
           )}
         </section>
 
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Stock Quote</h2>
-              <p className="muted">Search a ticker to retrieve latest quote data.</p>
-            </div>
-          </div>
-
-          <div className="quote-form">
-            <input
-              value={symbol}
-              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-              placeholder="Enter ticker, e.g. AAPL"
-            />
-
-            <button onClick={fetchQuote}>
-              {loading ? "Loading..." : "Get Quote"}
-            </button>
-          </div>
-
-          {quote && (
-            <div className="quote-box">
-              <div className="quote-item">
-                <strong>Symbol</strong>
-                <span>{quote.symbol}</span>
-              </div>
-
-              <div className="quote-item">
-                <strong>Current</strong>
-                <span>{formatMoney(quote.current_price)}</span>
-              </div>
-
-              <div className="quote-item">
-                <strong>Open</strong>
-                <span>{formatMoney(quote.open_price)}</span>
-              </div>
-
-              <div className="quote-item">
-                <strong>High</strong>
-                <span>{formatMoney(quote.high_price)}</span>
-              </div>
-
-              <div className="quote-item">
-                <strong>Low</strong>
-                <span>{formatMoney(quote.low_price)}</span>
+        <section className="grid-two">
+          <div className="card">
+            <div className="card-header">
+              <div>
+                <h2>Stock Quote</h2>
+                <p className="muted">Search a ticker to retrieve latest quote data.</p>
               </div>
             </div>
-          )}
+
+            <div className="quote-form">
+              <input
+                value={symbol}
+                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+                placeholder="Enter ticker, e.g. AAPL"
+              />
+
+              <button onClick={fetchQuote}>
+                {loading ? "Loading..." : "Get Quote"}
+              </button>
+            </div>
+
+            {quote && (
+              <div className="quote-box">
+                <div className="quote-item">
+                  <strong>Symbol</strong>
+                  <span>{quote.symbol}</span>
+                </div>
+
+                <div className="quote-item">
+                  <strong>Current</strong>
+                  <span>{formatMoney(quote.current_price)}</span>
+                </div>
+
+                <div className="quote-item">
+                  <strong>Open</strong>
+                  <span>{formatMoney(quote.open_price)}</span>
+                </div>
+
+                <div className="quote-item">
+                  <strong>High</strong>
+                  <span>{formatMoney(quote.high_price)}</span>
+                </div>
+
+                <div className="quote-item">
+                  <strong>Low</strong>
+                  <span>{formatMoney(quote.low_price)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <div>
+                <h2>Trade Simulator</h2>
+                <p className="muted">Place simulated buy and sell orders.</p>
+              </div>
+            </div>
+
+            <div className="trade-form">
+              <div>
+                <label>Ticker</label>
+                <input
+                  value={tradeSymbol}
+                  onChange={(event) => setTradeSymbol(event.target.value.toUpperCase())}
+                  placeholder="AAPL"
+                />
+              </div>
+
+              <div>
+                <label>Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={tradeQuantity}
+                  onChange={(event) => setTradeQuantity(event.target.value)}
+                />
+              </div>
+
+              <div className="trade-buttons">
+                <button
+                  className="buy-button"
+                  onClick={() => placeTrade("BUY")}
+                  disabled={tradeLoading}
+                >
+                  {tradeLoading ? "Processing..." : "Buy"}
+                </button>
+
+                <button
+                  className="sell-button"
+                  onClick={() => placeTrade("SELL")}
+                  disabled={tradeLoading}
+                >
+                  {tradeLoading ? "Processing..." : "Sell"}
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="card">
@@ -230,9 +351,13 @@ function App() {
                 </thead>
 
                 <tbody>
-                  {portfolio.trades.slice(0, 6).map((trade, index) => (
+                  {portfolio.trades.slice(0, 8).map((trade, index) => (
                     <tr key={index}>
-                      <td>{trade.type}</td>
+                      <td>
+                        <span className={`trade-badge ${trade.type.toLowerCase()}`}>
+                          {trade.type}
+                        </span>
+                      </td>
                       <td>{trade.symbol}</td>
                       <td>{trade.quantity}</td>
                       <td>{formatMoney(trade.price)}</td>
