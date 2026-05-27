@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import initialise_database
 from market_data import fetch_quote, fetch_price
 from models import TradeRequest
-from portfolio import get_portfolio, buy_stock, sell_stock, get_trades
+from portfolio import get_portfolio, buy_stock, sell_stock, get_trades, reset_portfolio
 
 app = FastAPI(
     title="Trading Simulator Platform API",
@@ -67,3 +67,7 @@ def sell(request: TradeRequest):
 @app.get("/trades")
 def trades():
     return get_trades()
+
+@app.post("/reset")
+def reset():
+    return reset_portfolio()

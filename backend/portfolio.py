@@ -284,3 +284,19 @@ def get_trades():
         })
 
     return trades
+
+def reset_portfolio():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("DELETE FROM trades")
+    cursor.execute("DELETE FROM holdings")
+    cursor.execute("UPDATE account SET cash = ? WHERE id = 1", (100000.00,))
+
+    connection.commit()
+    connection.close()
+
+    return {
+        "message": "Portfolio reset successfully",
+        "portfolio": get_portfolio()
+    }

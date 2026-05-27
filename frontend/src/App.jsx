@@ -34,6 +34,12 @@ function App() {
   const [tradeQuantity, setTradeQuantity] = useState(1);
   const [tradeLoading, setTradeLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [tradeFilter, setTradeFilter] = useState("");
+
+  const filteredTrades =
+    portfolio?.trades?.filter((trade) =>
+      trade.symbol.toLowerCase().includes(tradeFilter.toLowerCase())
+    ) || [];
 
   async function fetchPortfolio() {
     try {
@@ -112,6 +118,41 @@ function App() {
     }
   }
 
+  async function resetPortfolio() {
+    const confirmed = window.confirm(
+      "Are you sure you want to reset the portfolio? This will delete holdings and trade history."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setMessage(null);
+
+      const response = await axios.post(`${API_BASE_URL}/reset`);
+
+      if (response.data.error) {
+        setMessage({
+          type: "error",
+          text: response.data.error,
+        });
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: response.data.message,
+      });
+
+      await fetchPortfolio();
+    } catch (error) {
+      console.error("Error resetting portfolio:", error);
+      setMessage({
+        type: "error",
+        text: "Could not reset portfolio. Check backend server.",
+      });
+    }
+  }
+
   useEffect(() => {
     fetchPortfolio();
   }, []);
@@ -130,11 +171,7 @@ function App() {
       </header>
 
       <main className="dashboard">
-        {message && (
-          <div className={`alert ${message.type}`}>
-            {message.text}
-          </div>
-        )}
+        {message && <div className={`alert ${message.type}`}>{message.text}</div>}
 
         <section className="card">
           <div className="card-header">
@@ -143,9 +180,15 @@ function App() {
               <p className="muted">Live valuation based on current market prices.</p>
             </div>
 
-            <button className="secondary-button" onClick={fetchPortfolio}>
-              Refresh
-            </button>
+            <div className="header-actions">
+              <button className="secondary-button" onClick={fetchPortfolio}>
+                Refresh
+              </button>
+
+              <button className="danger-button" onClick={resetPortfolio}>
+                Reset
+              </button>
+            </div>
           </div>
 
           {portfolio ? (
@@ -164,15 +207,25 @@ function App() {
 
               <div className="metric">
                 <p className="label">Unrealised P&L</p>
-                <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
+                <p
+                  className={`value ${getPnLClass(
+                    portfolio.summary?.total_unrealised_pnl
+                  )}`}
+                >
                   {formatMoney(portfolio.summary?.total_unrealised_pnl)}
                 </p>
               </div>
 
               <div className="metric">
                 <p className="label">Return</p>
-                <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
-                  {formatPercent(portfolio.summary?.total_unrealised_return_percent)}
+                <p
+                  className={`value ${getPnLClass(
+                    portfolio.summary?.total_unrealised_pnl
+                  )}`}
+                >
+                  {formatPercent(
+                    portfolio.summary?.total_unrealised_return_percent
+                  )}
                 </p>
               </div>
             </div>
@@ -245,7 +298,9 @@ function App() {
                 <label>Ticker</label>
                 <input
                   value={tradeSymbol}
-                  onChange={(event) => setTradeSymbol(event.target.value.toUpperCase())}
+                  onChange={(event) =>
+                    setTradeSymbol(event.target.value.toUpperCase())
+                  }
                   placeholder="AAPL"
                 />
               </div>
@@ -334,9 +389,16 @@ function App() {
               <h2>Recent Trades</h2>
               <p className="muted">Latest simulated orders stored in SQLite.</p>
             </div>
+
+            <input
+              className="filter-input"
+              value={tradeFilter}
+              onChange={(event) => setTradeFilter(event.target.value.toUpperCase())}
+              placeholder="Filter by ticker"
+            />
           </div>
 
-          {portfolio && portfolio.trades?.length > 0 ? (
+          {portfolio && filteredTrades.length > 0 ? (
             <div className="table-wrapper">
               <table>
                 <thead>
@@ -351,7 +413,7 @@ function App() {
                 </thead>
 
                 <tbody>
-                  {portfolio.trades.slice(0, 8).map((trade, index) => (
+                  {filteredTrades.slice(0, 12).map((trade, index) => (
                     <tr key={index}>
                       <td>
                         <span className={`trade-badge ${trade.type.toLowerCase()}`}>
@@ -369,7 +431,7 @@ function App() {
               </table>
             </div>
           ) : (
-            <p className="empty-state">No trades yet.</p>
+            <p className="empty-state">No matching trades.</p>
           )}
         </section>
       </main>
