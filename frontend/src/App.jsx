@@ -267,37 +267,56 @@ const totalHoldings = holdingsArray.length;
                 <p className="value">{formatMoney(portfolio.cash)}</p>
               </div>
 
-              <div className="metric">
-                <p className="label">Portfolio Value</p>
-                <p className="value">
-                  {formatMoney(portfolio.summary?.total_portfolio_value)}
-                </p>
-              </div>
+            <div className="metric">
+              <p className="label">Portfolio Value</p>
+              <p className="value">
+                {formatMoney(portfolio.summary?.total_portfolio_value)}
+              </p>            </div>
 
-              <div className="metric">
-                <p className="label">Unrealised P&L</p>
-                <p
-                  className={`value ${getPnLClass(
-                    portfolio.summary?.total_unrealised_pnl
-                  )}`}
-                >
-                  {formatMoney(portfolio.summary?.total_unrealised_pnl)}
-                </p>
-              </div>
-
-              <div className="metric">
-                <p className="label">Return</p>
-                <p
-                  className={`value ${getPnLClass(
-                    portfolio.summary?.total_unrealised_pnl
-                  )}`}
-                >
-                  {formatPercent(
-                    portfolio.summary?.total_unrealised_return_percent
-                  )}
-                </p>
-              </div>
+            <div className="metric">
+              <p className="label">Unrealised P&L</p>
+              <p
+                className={`value ${getPnLClass(
+                  portfolio.summary?.total_unrealised_pnl
+                )}`}
+              >
+                {formatMoney(portfolio.summary?.total_unrealised_pnl)}
+              </p>
             </div>
+
+            <div className="metric">
+              <p className="label">Realised P&L</p>
+              <p
+                className={`value ${getPnLClass(
+                  portfolio.summary?.total_realised_pnl
+                )}`}
+              >
+                {formatMoney(portfolio.summary?.total_realised_pnl)}
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Total P&L</p>
+              <p
+                className={`value ${getPnLClass(
+                  portfolio.summary?.total_pnl
+                )}`}
+              >
+                {formatMoney(portfolio.summary?.total_pnl)}
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Return</p>
+              <p
+                className={`value ${getPnLClass(
+                  portfolio.summary?.total_unrealised_pnl
+                )}`}
+              >
+                {formatPercent(portfolio.summary?.total_unrealised_return_percent)}
+              </p>
+            </div>
+          </div>
           ) : (
             <p className="empty-state">Loading portfolio...</p>
           )}
@@ -616,6 +635,7 @@ const totalHoldings = holdingsArray.length;
                     <th>Qty</th>
                     <th>Price</th>
                     <th>Total</th>
+                    <th>Realised P&L</th>
                     <th>Time</th>
                   </tr>
                 </thead>
@@ -632,6 +652,9 @@ const totalHoldings = holdingsArray.length;
                       <td>{trade.quantity}</td>
                       <td>{formatMoney(trade.price)}</td>
                       <td>{formatMoney(trade.total)}</td>
+                      <td className={getPnLClass(trade.realised_pnl)}>
+                        {formatMoney(trade.realised_pnl)}
+                      </td>
                       <td>{new Date(trade.timestamp).toLocaleString()}</td>
                     </tr>
                   ))}

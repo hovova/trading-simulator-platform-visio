@@ -25,11 +25,17 @@ def get_portfolio():
     holdings_rows = cursor.fetchall()
 
     cursor.execute("""
-        SELECT trade_type, symbol, quantity, price, total, timestamp
+        SELECT trade_type, symbol, quantity, price, total, timestamp, realised_pnl
         FROM trades
         ORDER BY id DESC
     """)
     trade_rows = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT SUM(realised_pnl) AS total_realised_pnl
+        FROM trades
+    """)
+    realised_pnl_row = cursor.fetchone()
 
     connection.close()
 
@@ -73,6 +79,8 @@ def get_portfolio():
 
     total_portfolio_value = round(cash + total_market_value, 2)
     total_unrealised_pnl = round(total_market_value - total_cost_basis, 2)
+    total_realised_pnl = round(realised_pnl_row["total_realised_pnl"] or 0, 2)
+    total_pnl = round(total_realised_pnl + total_unrealised_pnl, 2)
 
     if total_cost_basis > 0:
         total_unrealised_return_percent = round(
@@ -91,6 +99,7 @@ def get_portfolio():
             "quantity": row["quantity"],
             "price": row["price"],
             "total": row["total"],
+            "realised_pnl": row["realised_pnl"],
             "timestamp": row["timestamp"]
         })
 
@@ -102,7 +111,9 @@ def get_portfolio():
             "total_cost_basis": round(total_cost_basis, 2),
             "total_portfolio_value": total_portfolio_value,
             "total_unrealised_pnl": total_unrealised_pnl,
-            "total_unrealised_return_percent": total_unrealised_return_percent
+            "total_unrealised_return_percent": total_unrealised_return_percent,
+            "total_realised_pnl": total_realised_pnl,
+            "total_pnl": total_pnl
         },
         "trades": trades
     }
@@ -165,9 +176,11 @@ def buy_stock(symbol: str, quantity: int, price: float):
     timestamp = datetime.now().isoformat()
 
     cursor.execute("""
-        INSERT INTO trades (trade_type, symbol, quantity, price, total, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, ("BUY", symbol, quantity, price, total_cost, timestamp))
+        INSERT INTO trades (
+            trade_type, symbol, quantity, price, total, timestamp, realised_pnl
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, ("BUY", symbol, quantity, price, total_cost, timestamp, 0))
 
     connection.commit()
     connection.close()
@@ -180,6 +193,7 @@ def buy_stock(symbol: str, quantity: int, price: float):
             "quantity": quantity,
             "price": price,
             "total": total_cost,
+            "realised_pnl": 0,
             "timestamp": timestamp
         },
         "portfolio": get_portfolio()
@@ -209,7 +223,10 @@ def sell_stock(symbol: str, quantity: int, price: float):
         connection.close()
         return {"error": "Not enough shares to sell"}
 
+    average_price = holding["average_price"]
     total_sale = round(quantity * price, 2)
+    realised_pnl = round((price - average_price) * quantity, 2)
+
     remaining_quantity = holding["quantity"] - quantity
 
     if remaining_quantity == 0:
@@ -237,9 +254,11 @@ def sell_stock(symbol: str, quantity: int, price: float):
     timestamp = datetime.now().isoformat()
 
     cursor.execute("""
-        INSERT INTO trades (trade_type, symbol, quantity, price, total, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, ("SELL", symbol, quantity, price, total_sale, timestamp))
+        INSERT INTO trades (
+            trade_type, symbol, quantity, price, total, timestamp, realised_pnl
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, ("SELL", symbol, quantity, price, total_sale, timestamp, realised_pnl))
 
     connection.commit()
     connection.close()
@@ -252,6 +271,7 @@ def sell_stock(symbol: str, quantity: int, price: float):
             "quantity": quantity,
             "price": price,
             "total": total_sale,
+            "realised_pnl": realised_pnl,
             "timestamp": timestamp
         },
         "portfolio": get_portfolio()
@@ -263,7 +283,7 @@ def get_trades():
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT trade_type, symbol, quantity, price, total, timestamp
+        SELECT trade_type, symbol, quantity, price, total, timestamp, realised_pnl
         FROM trades
         ORDER BY id DESC
     """)
@@ -280,10 +300,12 @@ def get_trades():
             "quantity": row["quantity"],
             "price": row["price"],
             "total": row["total"],
+            "realised_pnl": row["realised_pnl"],
             "timestamp": row["timestamp"]
         })
 
     return trades
+
 
 def reset_portfolio():
     connection = get_connection()

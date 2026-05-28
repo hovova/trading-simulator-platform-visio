@@ -10,6 +10,18 @@ def get_connection():
     return connection
 
 
+def add_column_if_missing(cursor, table_name: str, column_name: str, column_definition: str):
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = cursor.fetchall()
+
+    existing_columns = [column["name"] for column in columns]
+
+    if column_name not in existing_columns:
+        cursor.execute(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+        )
+
+
 def initialise_database():
     connection = get_connection()
     cursor = connection.cursor()
@@ -40,6 +52,13 @@ def initialise_database():
             timestamp TEXT NOT NULL
         )
     """)
+
+    add_column_if_missing(
+        cursor,
+        "trades",
+        "realised_pnl",
+        "REAL DEFAULT 0"
+    )
 
     cursor.execute("SELECT cash FROM account WHERE id = 1")
     account = cursor.fetchone()
