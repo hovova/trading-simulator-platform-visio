@@ -1,8 +1,21 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  Bar,
+  BarChart,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import "./App.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
+const CHART_COLORS = ["#38bdf8", "#22c55e", "#f97316", "#a855f7", "#eab308", "#ef4444"];
 
 function formatMoney(value) {
   if (value === undefined || value === null) return "$0.00";
@@ -40,6 +53,62 @@ function App() {
     portfolio?.trades?.filter((trade) =>
       trade.symbol.toLowerCase().includes(tradeFilter.toLowerCase())
     ) || [];
+
+  const holdingsArray = portfolio
+  ? Object.entries(portfolio.holdings || {}).map(([symbol, holding]) => ({
+      symbol,
+      ...holding,
+    }))
+  : [];
+
+const allocationData = holdingsArray.map((holding) => ({
+  name: holding.symbol,
+  value: holding.market_value,
+}));
+
+const cashVsInvestedData = portfolio
+  ? [
+      {
+        name: "Cash",
+        value: portfolio.cash || 0,
+      },
+      {
+        name: "Invested",
+        value: portfolio.summary?.total_market_value || 0,
+      },
+    ]
+  : [];
+
+const buyTrades = portfolio?.trades?.filter((trade) => trade.type === "BUY").length || 0;
+const sellTrades = portfolio?.trades?.filter((trade) => trade.type === "SELL").length || 0;
+
+const tradeBreakdownData = [
+  {
+    name: "BUY",
+    count: buyTrades,
+  },
+  {
+    name: "SELL",
+    count: sellTrades,
+  },
+];
+
+const bestHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((best, current) =>
+        current.unrealised_pnl > best.unrealised_pnl ? current : best
+      )
+    : null;
+
+const worstHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((worst, current) =>
+        current.unrealised_pnl < worst.unrealised_pnl ? current : worst
+      )
+    : null;
+
+const totalTrades = portfolio?.trades?.length || 0;
+const totalHoldings = holdingsArray.length;
 
   async function fetchPortfolio() {
     try {
@@ -233,6 +302,145 @@ function App() {
             <p className="empty-state">Loading portfolio...</p>
           )}
         </section>
+        
+                        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Portfolio Analytics</h2>
+              <p className="muted">
+                Visual breakdown of holdings, cash allocation and trading activity.
+              </p>
+            </div>
+          </div>
+
+          <div className="analytics-grid">
+            <div className="analytics-card">
+              <div className="analytics-title-row">
+                <h3>Holdings Allocation</h3>
+                <span className="chart-chip">By market value</span>
+              </div>
+
+              {allocationData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={allocationData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={58}
+                      outerRadius={92}
+                      paddingAngle={4}
+                    >
+                      {allocationData.map((entry, index) => (
+                        <Cell
+                          key={`allocation-${entry.name}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [formatMoney(value), name]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="empty-state">No holdings to chart yet.</p>
+              )}
+            </div>
+
+            <div className="analytics-card">
+              <div className="analytics-title-row">
+                <h3>Cash vs Invested</h3>
+                <span className="chart-chip">Capital split</span>
+              </div>
+
+              {portfolio ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <PieChart>
+                    <Pie
+                      data={cashVsInvestedData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={58}
+                      outerRadius={92}
+                      paddingAngle={4}
+                    >
+                      <Cell fill="#38bdf8" />
+                      <Cell fill="#22c55e" />
+                    </Pie>
+                    <Tooltip
+                      formatter={(value, name) => [formatMoney(value), name]}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="empty-state">Loading chart...</p>
+              )}
+            </div>
+
+            <div className="analytics-card">
+              <div className="analytics-title-row">
+                <h3>Trade Breakdown</h3>
+                <span className="chart-chip">Order count</span>
+              </div>
+
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={tradeBreakdownData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+                  <XAxis dataKey="name" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[10, 10, 0, 0]}>
+                    {tradeBreakdownData.map((entry) => (
+                      <Cell
+                        key={`trade-${entry.name}`}
+                        fill={entry.name === "BUY" ? "#22c55e" : "#f97316"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Performance Snapshot</h2>
+              <p className="muted">Quick portfolio statistics generated from your simulated trades.</p>
+            </div>
+          </div>
+
+          <div className="summary-grid">
+            <div className="metric">
+              <p className="label">Total Holdings</p>
+              <p className="value">{totalHoldings}</p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Total Trades</p>
+              <p className="value">{totalTrades}</p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Best Holding</p>
+              <p className={`value ${getPnLClass(bestHolding?.unrealised_pnl)}`}>
+                {bestHolding ? `${bestHolding.symbol} ${formatMoney(bestHolding.unrealised_pnl)}` : "N/A"}
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Worst Holding</p>
+              <p className={`value ${getPnLClass(worstHolding?.unrealised_pnl)}`}>
+                {worstHolding ? `${worstHolding.symbol} ${formatMoney(worstHolding.unrealised_pnl)}` : "N/A"}
+              </p>
+            </div>
+          </div>
+        </section>
+              
+          
 
         <section className="grid-two">
           <div className="card">
