@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import initialise_database
@@ -9,7 +9,7 @@ from portfolio import get_portfolio, buy_stock, sell_stock, get_trades, reset_po
 app = FastAPI(
     title="Trading Simulator Platform API",
     description="A paper trading simulator backend using market price data.",
-    version="0.1.0"
+    version="0.2.0"
 )
 
 app.add_middleware(
@@ -29,45 +29,79 @@ def startup_event():
     initialise_database()
 
 
-@app.get("/")
+def handle_service_response(response):
+    if isinstance(response, dict) and "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+
+    return response
+
+
+@app.get("/", tags=["Health"])
 def home():
-    return {"message": "Trading Simulator Platform API is running"}
+    return {
+        "message": "Trading Simulator Platform API is running",
+        "version": "0.2.0"
+    }
 
 
-@app.get("/quote/{symbol}")
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "trading-simulator-api"
+    }
+
+
+@app.get("/quote/{symbol}", tags=["Market Data"])
 def get_quote(symbol: str):
-    return fetch_quote(symbol)
+    response = fetch_quote(symbol)
+
+    if isinstance(response, dict) and "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+
+    return response
 
 
-@app.get("/portfolio")
+@app.get("/portfolio", tags=["Portfolio"])
 def portfolio():
     return get_portfolio()
 
 
-@app.post("/buy")
+@app.post("/buy", tags=["Trading"])
 def buy(request: TradeRequest):
-    price = fetch_price(request.symbol)
+    symbol = request.symbol.upper().strip()
+    price = fetch_price(symbol)
 
     if price is None or price == 0:
-        return {"error": "Could not fetch valid stock price"}
+        raise HTTPException(
+            status_code=400,
+            detail="Could not fetch valid stock price"
+        )
 
-    return buy_stock(request.symbol, request.quantity, price)
+    response = buy_stock(symbol, request.quantity, price)
+    return handle_service_response(response)
 
 
-@app.post("/sell")
+@app.post("/sell", tags=["Trading"])
 def sell(request: TradeRequest):
-    price = fetch_price(request.symbol)
+    symbol = request.symbol.upper().strip()
+    price = fetch_price(symbol)
 
     if price is None or price == 0:
-        return {"error": "Could not fetch valid stock price"}
+        raise HTTPException(
+            status_code=400,
+            detail="Could not fetch valid stock price"
+        )
 
-    return sell_stock(request.symbol, request.quantity, price)
+    response = sell_stock(symbol, request.quantity, price)
+    return handle_service_response(response)
 
 
-@app.get("/trades")
+@app.get("/trades", tags=["Trading"])
 def trades():
     return get_trades()
 
-@app.post("/reset")
+
+@app.post("/reset", tags=["Portfolio"])
 def reset():
     return reset_portfolio()
