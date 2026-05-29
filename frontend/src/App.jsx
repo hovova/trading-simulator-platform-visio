@@ -37,6 +37,22 @@ function getPnLClass(value) {
   return "";
 }
 
+function getErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item.msg || "Validation error")
+      .join(", ");
+  }
+
+  return fallback;
+}
+
 function App() {
   const [portfolio, setPortfolio] = useState(null);
   const [symbol, setSymbol] = useState("AAPL");
@@ -143,17 +159,27 @@ const totalHoldings = holdingsArray.length;
       console.error("Error fetching quote:", error);
       setMessage({
         type: "error",
-        text: "Could not fetch quote. Check ticker or backend server.",
+        text:
+          error.response?.data?.detail ||
+          "Could not fetch quote. Check ticker or backend server.",
       });
     } finally {
       setLoading(false);
     }
   }
 
-  async function placeTrade(type) {
-    try {
-      setTradeLoading(true);
-      setMessage(null);
+      async function placeTrade(type) {
+        if (Number(tradeQuantity) <= 0) {
+          setMessage({
+            type: "error",
+            text: "Quantity must be greater than 0.",
+          });
+          return;
+        }
+
+        try {
+          setTradeLoading(true);
+          setMessage(null);
 
       const endpoint = type === "BUY" ? "/buy" : "/sell";
 
@@ -180,7 +206,9 @@ const totalHoldings = holdingsArray.length;
       console.error("Error placing trade:", error);
       setMessage({
         type: "error",
-        text: "Trade failed. Check backend server and try again.",
+        text:
+          error.response?.data?.detail ||
+          "Trade failed. Check backend server and try again.",
       });
     } finally {
       setTradeLoading(false);
@@ -217,7 +245,9 @@ const totalHoldings = holdingsArray.length;
       console.error("Error resetting portfolio:", error);
       setMessage({
         type: "error",
-        text: "Could not reset portfolio. Check backend server.",
+        text:
+          error.response?.data?.detail ||
+          "Could not reset portfolio. Check backend server.",
       });
     }
   }
