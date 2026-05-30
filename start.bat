@@ -13,11 +13,18 @@ echo Starting frontend server...
 start "Visio Frontend App" cmd /k "cd /d %~dp0frontend && npm run dev"
 
 echo.
-echo Servers are starting in separate windows...
+echo Waiting for servers to start...
+timeout /t 6 /nobreak >nul
+
+echo Opening browser tabs...
+start "" "http://localhost:5173/"
+start "" "http://127.0.0.1:8000/docs"
+
 echo.
 echo Backend API:  http://127.0.0.1:8000/docs
 echo Frontend App: http://localhost:5173/
 echo.
-echo Wait a few seconds, then open the frontend link.
+echo Servers are running in separate windows.
+echo Use stop.bat to stop them.
 echo.
 pause
