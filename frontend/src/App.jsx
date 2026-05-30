@@ -17,6 +17,18 @@ import "./App.css";
 const API_BASE_URL = "http://127.0.0.1:8000";
 const CHART_COLORS = ["#38bdf8", "#22c55e", "#f97316", "#a855f7", "#eab308", "#ef4444"];
 
+const NAV_ITEMS = [
+  "Dashboard",
+  "Markets",
+  "Watchlist",
+  "Trade",
+  "Positions",
+  "Orders",
+  "Analytics",
+  "Education",
+  "Settings",
+];
+
 function formatMoney(value) {
   if (value === undefined || value === null) return "$0.00";
 
@@ -64,6 +76,7 @@ function App() {
   const [tradeLoading, setTradeLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [tradeFilter, setTradeFilter] = useState("");
+  const [activePage, setActivePage] = useState("Dashboard");
 
   const filteredTrades =
     portfolio?.trades?.filter((trade) =>
@@ -256,15 +269,74 @@ const totalHoldings = holdingsArray.length;
     fetchPortfolio();
   }, []);
 
-  return (
+return (
+  <div className="app-shell">
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <div className="logo-mark">V</div>
+        <div>
+          <h2>Visio</h2>
+          <p>Trading Simulator</p>
+        </div>
+      </div>
+
+      <nav className="sidebar-nav">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item}
+            className={`nav-item ${activePage === item ? "active" : ""}`}
+            onClick={() => setActivePage(item)}
+          >
+            {item}
+          </button>
+        ))}
+      </nav>
+
+      <div className="sidebar-footer">
+        <p>Paper Trading Mode</p>
+        <strong>Live Market Data</strong>
+      </div>
+    </aside>
+
     <div className="app">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Visio Trading</p>
+          <h1>{activePage}</h1>
+        </div>
+
+        <div className="account-strip">
+          <div>
+            <span>Practice Funds</span>
+            <strong>{formatMoney(100000)}</strong>
+          </div>
+
+          <div>
+            <span>Cash</span>
+            <strong>{formatMoney(portfolio?.cash)}</strong>
+          </div>
+
+          <div>
+            <span>Portfolio Value</span>
+            <strong>{formatMoney(portfolio?.summary?.total_portfolio_value)}</strong>
+          </div>
+
+          <div>
+            <span>Total P&L</span>
+            <strong className={getPnLClass(portfolio?.summary?.total_pnl)}>
+              {formatMoney(portfolio?.summary?.total_pnl)}
+            </strong>
+          </div>
+        </div>
+      </header>
+
       <header className="hero">
         <div className="hero-card">
           <p className="eyebrow">Visio Trading</p>
           <h1>Trading Simulator Platform</h1>
           <p className="subtitle">
             A paper trading dashboard for simulated stock positions, portfolio
-            value, trade history and unrealised performance.
+            value, trade history and realised/unrealised performance.
           </p>
         </div>
       </header>
@@ -695,9 +767,9 @@ const totalHoldings = holdingsArray.length;
             <p className="empty-state">No matching trades.</p>
           )}
         </section>
-      </main>
+        </main>
     </div>
-  );
+  </div>
+);
 }
-
 export default App;
