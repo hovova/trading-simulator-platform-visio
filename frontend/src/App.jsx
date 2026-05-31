@@ -341,228 +341,216 @@ return (
         </div>
       </header>
 
-      <main className="dashboard">
-        {message && <div className={`alert ${message.type}`}>{message.text}</div>}
+          <main className="dashboard">
+      {message && <div className={`alert ${message.type}`}>{message.text}</div>}
 
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Portfolio Summary</h2>
-              <p className="muted">Live valuation based on current market prices.</p>
+      {activePage === "Dashboard" && (
+        <>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2>Portfolio Summary</h2>
+                <p className="muted">Live valuation based on current market prices.</p>
+              </div>
+
+              <div className="header-actions">
+                <button className="secondary-button" onClick={fetchPortfolio}>
+                  Refresh
+                </button>
+
+                <button className="danger-button" onClick={resetPortfolio}>
+                  Reset
+                </button>
+              </div>
             </div>
 
-            <div className="header-actions">
-              <button className="secondary-button" onClick={fetchPortfolio}>
-                Refresh
-              </button>
+            {portfolio ? (
+              <div className="summary-grid">
+                <div className="metric">
+                  <p className="label">Cash</p>
+                  <p className="value">{formatMoney(portfolio.cash)}</p>
+                </div>
 
-              <button className="danger-button" onClick={resetPortfolio}>
-                Reset
-              </button>
+                <div className="metric">
+                  <p className="label">Portfolio Value</p>
+                  <p className="value">
+                    {formatMoney(portfolio.summary?.total_portfolio_value)}
+                  </p>
+                </div>
+
+                <div className="metric">
+                  <p className="label">Unrealised P&L</p>
+                  <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
+                    {formatMoney(portfolio.summary?.total_unrealised_pnl)}
+                  </p>
+                </div>
+
+                <div className="metric">
+                  <p className="label">Realised P&L</p>
+                  <p className={`value ${getPnLClass(portfolio.summary?.total_realised_pnl)}`}>
+                    {formatMoney(portfolio.summary?.total_realised_pnl)}
+                  </p>
+                </div>
+
+                <div className="metric">
+                  <p className="label">Total P&L</p>
+                  <p className={`value ${getPnLClass(portfolio.summary?.total_pnl)}`}>
+                    {formatMoney(portfolio.summary?.total_pnl)}
+                  </p>
+                </div>
+
+                <div className="metric">
+                  <p className="label">Return</p>
+                  <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
+                    {formatPercent(portfolio.summary?.total_unrealised_return_percent)}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="empty-state">Loading portfolio...</p>
+            )}
+          </section>
+
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2>Performance Snapshot</h2>
+                <p className="muted">Quick portfolio statistics generated from your simulated trades.</p>
+              </div>
             </div>
-          </div>
 
-          {portfolio ? (
             <div className="summary-grid">
               <div className="metric">
-                <p className="label">Cash</p>
-                <p className="value">{formatMoney(portfolio.cash)}</p>
+                <p className="label">Total Holdings</p>
+                <p className="value">{totalHoldings}</p>
               </div>
 
-            <div className="metric">
-              <p className="label">Portfolio Value</p>
-              <p className="value">
-                {formatMoney(portfolio.summary?.total_portfolio_value)}
-              </p>            </div>
-
-            <div className="metric">
-              <p className="label">Unrealised P&L</p>
-              <p
-                className={`value ${getPnLClass(
-                  portfolio.summary?.total_unrealised_pnl
-                )}`}
-              >
-                {formatMoney(portfolio.summary?.total_unrealised_pnl)}
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Realised P&L</p>
-              <p
-                className={`value ${getPnLClass(
-                  portfolio.summary?.total_realised_pnl
-                )}`}
-              >
-                {formatMoney(portfolio.summary?.total_realised_pnl)}
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Total P&L</p>
-              <p
-                className={`value ${getPnLClass(
-                  portfolio.summary?.total_pnl
-                )}`}
-              >
-                {formatMoney(portfolio.summary?.total_pnl)}
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Return</p>
-              <p
-                className={`value ${getPnLClass(
-                  portfolio.summary?.total_unrealised_pnl
-                )}`}
-              >
-                {formatPercent(portfolio.summary?.total_unrealised_return_percent)}
-              </p>
-            </div>
-          </div>
-          ) : (
-            <p className="empty-state">Loading portfolio...</p>
-          )}
-        </section>
-        
-                        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Portfolio Analytics</h2>
-              <p className="muted">
-                Visual breakdown of holdings, cash allocation and trading activity.
-              </p>
-            </div>
-          </div>
-
-          <div className="analytics-grid">
-            <div className="analytics-card">
-              <div className="analytics-title-row">
-                <h3>Holdings Allocation</h3>
-                <span className="chart-chip">By market value</span>
+              <div className="metric">
+                <p className="label">Total Trades</p>
+                <p className="value">{totalTrades}</p>
               </div>
 
-              {allocationData.length > 0 ? (
+              <div className="metric">
+                <p className="label">Best Holding</p>
+                <p className={`value ${getPnLClass(bestHolding?.unrealised_pnl)}`}>
+                  {bestHolding ? `${bestHolding.symbol} ${formatMoney(bestHolding.unrealised_pnl)}` : "N/A"}
+                </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Worst Holding</p>
+                <p className={`value ${getPnLClass(worstHolding?.unrealised_pnl)}`}>
+                  {worstHolding ? `${worstHolding.symbol} ${formatMoney(worstHolding.unrealised_pnl)}` : "N/A"}
+                </p>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {activePage === "Analytics" && (
+        <>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2>Portfolio Analytics</h2>
+                <p className="muted">
+                  Visual breakdown of holdings, cash allocation and trading activity.
+                </p>
+              </div>
+            </div>
+
+            <div className="analytics-grid">
+              <div className="analytics-card">
+                <div className="analytics-title-row">
+                  <h3>Holdings Allocation</h3>
+                  <span className="chart-chip">By market value</span>
+                </div>
+
+                {allocationData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={allocationData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={58}
+                        outerRadius={92}
+                        paddingAngle={4}
+                      >
+                        {allocationData.map((entry, index) => (
+                          <Cell
+                            key={`allocation-${entry.name}`}
+                            fill={CHART_COLORS[index % CHART_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [formatMoney(value), name]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="empty-state">No holdings to chart yet.</p>
+                )}
+              </div>
+
+              <div className="analytics-card">
+                <div className="analytics-title-row">
+                  <h3>Cash vs Invested</h3>
+                  <span className="chart-chip">Capital split</span>
+                </div>
+
+                {portfolio ? (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={cashVsInvestedData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={58}
+                        outerRadius={92}
+                        paddingAngle={4}
+                      >
+                        <Cell fill="#38bdf8" />
+                        <Cell fill="#22c55e" />
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [formatMoney(value), name]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="empty-state">Loading chart...</p>
+                )}
+              </div>
+
+              <div className="analytics-card">
+                <div className="analytics-title-row">
+                  <h3>Trade Breakdown</h3>
+                  <span className="chart-chip">Order count</span>
+                </div>
+
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={allocationData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={58}
-                      outerRadius={92}
-                      paddingAngle={4}
-                    >
-                      {allocationData.map((entry, index) => (
+                  <BarChart data={tradeBreakdownData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+                    <XAxis dataKey="name" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" radius={[10, 10, 0, 0]}>
+                      {tradeBreakdownData.map((entry) => (
                         <Cell
-                          key={`allocation-${entry.name}`}
-                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                          key={`trade-${entry.name}`}
+                          fill={entry.name === "BUY" ? "#22c55e" : "#f97316"}
                         />
                       ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [formatMoney(value), name]}
-                    />
-                    <Legend />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
-              ) : (
-                <p className="empty-state">No holdings to chart yet.</p>
-              )}
-            </div>
-
-            <div className="analytics-card">
-              <div className="analytics-title-row">
-                <h3>Cash vs Invested</h3>
-                <span className="chart-chip">Capital split</span>
               </div>
-
-              {portfolio ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={cashVsInvestedData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={58}
-                      outerRadius={92}
-                      paddingAngle={4}
-                    >
-                      <Cell fill="#38bdf8" />
-                      <Cell fill="#22c55e" />
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name) => [formatMoney(value), name]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="empty-state">Loading chart...</p>
-              )}
             </div>
+          </section>
+        </>
+      )}
 
-            <div className="analytics-card">
-              <div className="analytics-title-row">
-                <h3>Trade Breakdown</h3>
-                <span className="chart-chip">Order count</span>
-              </div>
-
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={tradeBreakdownData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[10, 10, 0, 0]}>
-                    {tradeBreakdownData.map((entry) => (
-                      <Cell
-                        key={`trade-${entry.name}`}
-                        fill={entry.name === "BUY" ? "#22c55e" : "#f97316"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Performance Snapshot</h2>
-              <p className="muted">Quick portfolio statistics generated from your simulated trades.</p>
-            </div>
-          </div>
-
-          <div className="summary-grid">
-            <div className="metric">
-              <p className="label">Total Holdings</p>
-              <p className="value">{totalHoldings}</p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Total Trades</p>
-              <p className="value">{totalTrades}</p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Best Holding</p>
-              <p className={`value ${getPnLClass(bestHolding?.unrealised_pnl)}`}>
-                {bestHolding ? `${bestHolding.symbol} ${formatMoney(bestHolding.unrealised_pnl)}` : "N/A"}
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Worst Holding</p>
-              <p className={`value ${getPnLClass(worstHolding?.unrealised_pnl)}`}>
-                {worstHolding ? `${worstHolding.symbol} ${formatMoney(worstHolding.unrealised_pnl)}` : "N/A"}
-              </p>
-            </div>
-          </div>
-        </section>
-              
-          
-
+      {activePage === "Trade" && (
         <section className="grid-two">
           <div className="card">
             <div className="card-header">
@@ -627,9 +615,7 @@ return (
                 <label>Ticker</label>
                 <input
                   value={tradeSymbol}
-                  onChange={(event) =>
-                    setTradeSymbol(event.target.value.toUpperCase())
-                  }
+                  onChange={(event) => setTradeSymbol(event.target.value.toUpperCase())}
                   placeholder="AAPL"
                 />
               </div>
@@ -664,11 +650,13 @@ return (
             </div>
           </div>
         </section>
+      )}
 
+      {activePage === "Positions" && (
         <section className="card">
           <div className="card-header">
             <div>
-              <h2>Holdings</h2>
+              <h2>Positions</h2>
               <p className="muted">Current open simulated positions.</p>
             </div>
           </div>
@@ -711,11 +699,13 @@ return (
             <p className="empty-state">No holdings yet.</p>
           )}
         </section>
+      )}
 
+      {activePage === "Orders" && (
         <section className="card">
           <div className="card-header">
             <div>
-              <h2>Recent Trades</h2>
+              <h2>Orders / Trade Log</h2>
               <p className="muted">Latest simulated orders stored in SQLite.</p>
             </div>
 
@@ -767,7 +757,93 @@ return (
             <p className="empty-state">No matching trades.</p>
           )}
         </section>
-        </main>
+      )}
+
+      {activePage === "Markets" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Markets</h2>
+              <p className="muted">Stock search and market discovery in development.</p>
+            </div>
+          </div>
+
+          <p className="empty-state">
+            Next feature: search stocks by company name or ticker, then quote, trade, or add them to a watchlist.
+          </p>
+        </section>
+      )}
+
+      {activePage === "Watchlist" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Watchlist</h2>
+              <p className="muted">Track favourite tickers and prices.</p>
+            </div>
+          </div>
+
+          <p className="empty-state">
+            Watchlist in development.
+          </p>
+        </section>
+      )}
+
+      {activePage === "Education" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Education</h2>
+              <p className="muted">Explain the trading simulator logic and finance metrics.</p>
+            </div>
+          </div>
+
+          <div className="education-grid">
+            <div className="metric">
+              <p className="label">Unrealised P&L</p>
+              <p className="muted">
+                Profit or loss on positions you still hold.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Realised P&L</p>
+              <p className="muted">
+                Profit or loss from positions you have already sold.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Paper Trading</p>
+              <p className="muted">
+                Simulated trading using market prices but without real money.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "Settings" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Settings</h2>
+              <p className="muted">Portfolio controls and local development tools.</p>
+            </div>
+          </div>
+
+          <div className="settings-actions">
+            <button className="secondary-button" onClick={fetchPortfolio}>
+              Refresh Portfolio
+            </button>
+
+            <button className="danger-button" onClick={resetPortfolio}>
+              Reset Portfolio
+            </button>
+          </div>
+        </section>
+      )}
+    </main>
     </div>
   </div>
 );
