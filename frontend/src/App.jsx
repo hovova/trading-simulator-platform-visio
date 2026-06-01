@@ -25,6 +25,7 @@ import {
   Search,
   Settings,
   Star,
+  Newspaper,
 } from "lucide-react";
 
 import "./App.css";
@@ -40,6 +41,10 @@ const NAV_ITEMS = [
   {
     name: "Markets",
     icon: Search,
+  },
+  {
+    name: "News",
+    icon: Newspaper,
   },
   {
     name: "Watchlist",
@@ -125,14 +130,19 @@ function App() {
   const [searchLoading, setSearchLoading] = useState(false);
 
   const [watchlist, setWatchlist] = useState(() => {
-  const savedWatchlist = localStorage.getItem("visio-watchlist");
+    const savedWatchlist = localStorage.getItem("visio-watchlist");
 
-  if (savedWatchlist) {
-    return JSON.parse(savedWatchlist);
-  }
+    if (savedWatchlist) {
+      return JSON.parse(savedWatchlist);
+    }
 
-  return [];
-});
+    return [];
+  });
+
+  const [marketNews, setMarketNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsIndex, setNewsIndex] = useState(0);
+
 
   const filteredTrades =
     portfolio?.trades?.filter((trade) =>
@@ -381,13 +391,85 @@ async function selectStockResult(result) {
     }
   }
 
+  async function fetchMarketNews() {
+  try {
+    setNewsLoading(true);
+    setMessage(null);
+
+    const response = await axios.get(`${API_BASE_URL}/news?category=general`);
+
+    setMarketNews(response.data.news || []);
+    setNewsIndex(0);
+  } catch (error) {
+    console.error("Error fetching market news:", error);
+    setMessage({
+      type: "error",
+      text: getErrorMessage(
+        error,
+        "Could not fetch market news. Check backend server."
+      ),
+    });
+  } finally {
+    setNewsLoading(false);
+  }
+}
+
+function goToNextNews() {
+  if (marketNews.length === 0) return;
+
+  setNewsIndex((currentIndex) =>
+    currentIndex === marketNews.length - 1 ? 0 : currentIndex + 1
+  );
+}
+
+function goToPreviousNews() {
+  if (marketNews.length === 0) return;
+
+  setNewsIndex((currentIndex) =>
+    currentIndex === 0 ? marketNews.length - 1 : currentIndex - 1
+  );
+}
+
+function formatNewsDate(timestamp) {
+  if (!timestamp) return "Unknown date";
+
+  return new Date(timestamp * 1000).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
   useEffect(() => {
     fetchPortfolio();
+    fetchMarketNews();
   }, []);
 
   useEffect(() => {
   localStorage.setItem("visio-watchlist", JSON.stringify(watchlist));
 }, [watchlist]);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    fetchMarketNews();
+  }, 600000);
+
+  return () => clearInterval(interval);
+}, []);
+
+useEffect(() => {
+  if (marketNews.length <= 1) return;
+
+  const carouselInterval = setInterval(() => {
+    setNewsIndex((currentIndex) =>
+      currentIndex === marketNews.length - 1 ? 0 : currentIndex + 1
+    );
+  }, 6000);
+
+  return () => clearInterval(carouselInterval);
+}, [marketNews.length]);
 
 function addToWatchlist(result) {
   const symbol = result.symbol;
@@ -713,6 +795,82 @@ return (
           </section>
         </>
       )}
+
+      {activePage === "News" && (
+  <section className="card">
+    <div className="card-header">
+      <div>
+        <h2>Market News</h2>
+        <p className="muted">
+          Auto-updating financial market headlines powered by Finnhub. Carousel rotates every 6 seconds.
+        </p>
+      </div>
+
+      <button className="secondary-button" onClick={fetchMarketNews}>
+        {newsLoading ? "Refreshing..." : "Refresh News"}
+      </button>
+    </div>
+
+    {marketNews.length > 0 ? (
+      <div className="news-carousel">
+        <div className="news-card">
+          {marketNews[newsIndex]?.image && (
+            <img
+              src={marketNews[newsIndex].image}
+              alt={marketNews[newsIndex].headline}
+              className="news-image"
+            />
+          )}
+
+          <div className="news-content">
+            <div className="news-meta">
+              <span>{marketNews[newsIndex]?.source || "Market News"}</span>
+              <span>{formatNewsDate(marketNews[newsIndex]?.datetime)}</span>
+            </div>
+
+            <h3>{marketNews[newsIndex]?.headline}</h3>
+
+            <p>
+              {marketNews[newsIndex]?.summary ||
+                "No summary available for this article."}
+            </p>
+
+            {marketNews[newsIndex]?.url && (
+              <a
+                href={marketNews[newsIndex].url}
+                target="_blank"
+                rel="noreferrer"
+                className="news-link"
+              >
+                Open article
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="news-controls">
+          <button className="secondary-button compact-button" onClick={goToPreviousNews}>
+            Previous
+          </button>
+
+          <span>
+            {newsIndex + 1} / {marketNews.length}
+          </span>
+
+          <button className="secondary-button compact-button" onClick={goToNextNews}>
+            Next
+          </button>
+        </div>
+      </div>
+    ) : (
+      <p className="empty-state">
+        {newsLoading
+          ? "Loading market news..."
+          : "No market news loaded yet. Click Refresh News."}
+      </p>
+    )}
+  </section>
+)}
 
       {activePage === "Trade" && (
         <section className="grid-two">
