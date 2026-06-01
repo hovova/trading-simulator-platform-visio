@@ -686,9 +686,18 @@ td {
 }
 
 .compact-button {
-  padding: 10px 14px;
+  width: auto;
+  min-width: 96px;
+  padding: 8px 12px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.market-results td:last-child {
+  width: 130px;
 }
 
 @media (max-width: 640px) {
