@@ -137,6 +137,8 @@ function App() {
 
     return [];
   });
+  const [watchlistQuotes, setWatchlistQuotes] = useState({});
+  const [watchlistLoading, setWatchlistLoading] = useState(false);
 
   const [marketNews, setMarketNews] = useState([]);
   const [newsLoading, setNewsLoading] = useState(false);
@@ -411,6 +413,48 @@ async function selectStockResult(result) {
     }
   }
 
+  async function fetchWatchlistQuotes() {
+  if (watchlist.length === 0) {
+    setWatchlistQuotes({});
+    return;
+  }
+
+  try {
+    setWatchlistLoading(true);
+
+    const quoteResponses = await Promise.all(
+      watchlist.map((item) =>
+        axios
+          .get(`${API_BASE_URL}/quote/${item.symbol}`)
+          .then((response) => ({
+            symbol: item.symbol,
+            quote: response.data,
+          }))
+          .catch(() => ({
+            symbol: item.symbol,
+            quote: null,
+          }))
+      )
+    );
+
+    const quotesBySymbol = {};
+
+    quoteResponses.forEach((item) => {
+      quotesBySymbol[item.symbol] = item.quote;
+    });
+
+    setWatchlistQuotes(quotesBySymbol);
+  } catch (error) {
+    console.error("Error fetching watchlist quotes:", error);
+    setMessage({
+      type: "error",
+      text: "Could not refresh watchlist prices.",
+    });
+  } finally {
+    setWatchlistLoading(false);
+  }
+}
+
   async function fetchMarketNews() {
   try {
     setNewsLoading(true);
@@ -465,6 +509,7 @@ function formatNewsDate(timestamp) {
   useEffect(() => {
     fetchPortfolio();
     fetchMarketNews();
+    fetchWatchlistQuotes();
   }, []);
 
   useEffect(() => {
@@ -490,6 +535,14 @@ useEffect(() => {
 
   return () => clearInterval(carouselInterval);
 }, [marketNews.length]);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    fetchWatchlistQuotes();
+  }, 60000);
+
+  return () => clearInterval(interval);
+}, [watchlist]);
 
 function addToWatchlist(result) {
   const symbol = result.symbol;
@@ -528,6 +581,18 @@ function removeFromWatchlist(symbol) {
     type: "success",
     text: `${symbol} removed from watchlist.`,
   });
+}
+
+function getDailyChange(quoteData) {
+  if (!quoteData?.current_price || !quoteData?.previous_close) return 0;
+
+  return quoteData.current_price - quoteData.previous_close;
+}
+
+function getDailyChangePercent(quoteData) {
+  if (!quoteData?.current_price || !quoteData?.previous_close) return 0;
+
+  return ((quoteData.current_price - quoteData.previous_close) / quoteData.previous_close) * 100;
 }
 
 return (
@@ -1232,63 +1297,85 @@ return (
   )}
 
           {activePage === "Watchlist" && (
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <h2>Watchlist</h2>
-            <p className="muted">
-              Track favourite tickers and quickly open them in the trade ticket.
-            </p>
-          </div>
-        </div>
+  <section className="card">
+    <div className="card-header">
+      <div>
+        <h2>Watchlist</h2>
+        <p className="muted">
+          Track favourite tickers with live prices and quick trade access.
+        </p>
+      </div>
 
-        {watchlist.length > 0 ? (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Symbol</th>
-                  <th>Company</th>
-                  <th>Type</th>
-                  <th>Action</th>
+      <button className="secondary-button" onClick={fetchWatchlistQuotes}>
+        {watchlistLoading ? "Refreshing..." : "Refresh Prices"}
+      </button>
+    </div>
+
+    {watchlist.length > 0 ? (
+      <div className="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>Current Price</th>
+              <th>Daily Change</th>
+              <th>Daily Change %</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {watchlist.map((item) => {
+              const quoteData = watchlistQuotes[item.symbol];
+              const dailyChange = getDailyChange(quoteData);
+              const dailyChangePercent = getDailyChangePercent(quoteData);
+
+              return (
+                <tr key={item.symbol}>
+                  <td>{item.symbol}</td>
+                  <td>{item.description}</td>
+                  <td>
+                    {quoteData
+                      ? formatMoney(quoteData.current_price)
+                      : "Loading..."}
+                  </td>
+                  <td className={getPnLClass(dailyChange)}>
+                    {formatMoney(dailyChange)}
+                  </td>
+                  <td className={getPnLClass(dailyChangePercent)}>
+                    {dailyChangePercent.toFixed(2)}%
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        className="quote-trade-button compact-button"
+                        onClick={() => selectStockResult(item)}
+                      >
+                        Quote / Trade
+                      </button>
+
+                      <button
+                        className="danger-button compact-button"
+                        onClick={() => removeFromWatchlist(item.symbol)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {watchlist.map((item) => (
-                  <tr key={item.symbol}>
-                    <td>{item.symbol}</td>
-                    <td>{item.description}</td>
-                    <td>{item.type}</td>
-                    <td>
-                      <div className="table-actions">
-                        <button
-                          className="secondary-button compact-button"
-                          onClick={() => selectStockResult(item)}
-                        >
-                          Quote / Trade
-                        </button>
-
-                        <button
-                          className="danger-button compact-button"
-                          onClick={() => removeFromWatchlist(item.symbol)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="empty-state">
-            Your watchlist is empty. Go to Markets, search for a company, and add it here.
-          </p>
-        )}
-      </section>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <p className="empty-state">
+        Your watchlist is empty. Go to Markets, search for a company, and add it here.
+      </p>
     )}
+  </section>
+)}
 
       {activePage === "Education" && (
         <section className="card">

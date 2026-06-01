@@ -623,6 +623,14 @@ td {
   flex-wrap: nowrap;
 }
 
+.watchlist-price-positive {
+  color: #22c55e;
+}
+
+.watchlist-price-negative {
+  color: #ef4444;
+}
+
 .quote-trade-button {
   background: linear-gradient(135deg, #15803d, #09973d);
   border: 1px solid rgba(34, 197, 94, 0.32);
