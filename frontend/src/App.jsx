@@ -124,6 +124,16 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  const [watchlist, setWatchlist] = useState(() => {
+  const savedWatchlist = localStorage.getItem("visio-watchlist");
+
+  if (savedWatchlist) {
+    return JSON.parse(savedWatchlist);
+  }
+
+  return [];
+});
+
   const filteredTrades =
     portfolio?.trades?.filter((trade) =>
       trade.symbol.toLowerCase().includes(tradeFilter.toLowerCase())
@@ -374,6 +384,49 @@ async function selectStockResult(result) {
   useEffect(() => {
     fetchPortfolio();
   }, []);
+
+  useEffect(() => {
+  localStorage.setItem("visio-watchlist", JSON.stringify(watchlist));
+}, [watchlist]);
+
+function addToWatchlist(result) {
+  const symbol = result.symbol;
+
+  const alreadyExists = watchlist.some((item) => item.symbol === symbol);
+
+  if (alreadyExists) {
+    setMessage({
+      type: "error",
+      text: `${symbol} is already in your watchlist.`,
+    });
+    return;
+  }
+
+  setWatchlist((currentWatchlist) => [
+    ...currentWatchlist,
+    {
+      symbol: result.symbol,
+      description: result.description || "N/A",
+      type: result.type || "N/A",
+    },
+  ]);
+
+  setMessage({
+    type: "success",
+    text: `${symbol} added to watchlist.`,
+  });
+}
+
+function removeFromWatchlist(symbol) {
+  setWatchlist((currentWatchlist) =>
+    currentWatchlist.filter((item) => item.symbol !== symbol)
+  );
+
+  setMessage({
+    type: "success",
+    text: `${symbol} removed from watchlist.`,
+  });
+}
 
 return (
   <div className="app-shell">
@@ -890,7 +943,7 @@ return (
           placeholder="Search company or ticker, e.g. Apple, Microsoft, TSLA"
         />
 
-        <button onClick={searchStocks}>
+        <button className="market-search-button" onClick={searchStocks}>
           {searchLoading ? "Searching..." : "Search"}
         </button>
       </div>
@@ -914,12 +967,21 @@ return (
                   <td>{result.description || "N/A"}</td>
                   <td>{result.type || "N/A"}</td>
                   <td>
-                    <button
-                      className="secondary-button compact-button"
-                      onClick={() => selectStockResult(result)}
-                    >
-                      Quote / Trade
-                    </button>
+                    <div className="table-actions">
+                      <button
+                        className="quote-trade-button compact-button"
+                        onClick={() => selectStockResult(result)}
+                      >
+                        Quote / Trade
+                      </button>
+
+                      <button
+                        className="watchlist-button compact-button"
+                        onClick={() => addToWatchlist(result)}
+                      >
+                        Watchlist
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -934,20 +996,64 @@ return (
     </section>
   )}
 
-      {activePage === "Watchlist" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Watchlist</h2>
-              <p className="muted">Track favourite tickers and prices.</p>
-            </div>
+          {activePage === "Watchlist" && (
+      <section className="card">
+        <div className="card-header">
+          <div>
+            <h2>Watchlist</h2>
+            <p className="muted">
+              Track favourite tickers and quickly open them in the trade ticket.
+            </p>
           </div>
+        </div>
 
+        {watchlist.length > 0 ? (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Company</th>
+                  <th>Type</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {watchlist.map((item) => (
+                  <tr key={item.symbol}>
+                    <td>{item.symbol}</td>
+                    <td>{item.description}</td>
+                    <td>{item.type}</td>
+                    <td>
+                      <div className="table-actions">
+                        <button
+                          className="secondary-button compact-button"
+                          onClick={() => selectStockResult(item)}
+                        >
+                          Quote / Trade
+                        </button>
+
+                        <button
+                          className="danger-button compact-button"
+                          onClick={() => removeFromWatchlist(item.symbol)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
           <p className="empty-state">
-            Watchlist in development.
+            Your watchlist is empty. Go to Markets, search for a company, and add it here.
           </p>
-        </section>
-      )}
+        )}
+      </section>
+    )}
 
       {activePage === "Education" && (
         <section className="card">
