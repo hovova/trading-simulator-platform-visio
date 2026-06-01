@@ -11,6 +11,9 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  Line,
+  LineChart,
+  CartesianGrid,
 } from "recharts";
 
 import {
@@ -115,6 +118,8 @@ function App() {
   const [symbol, setSymbol] = useState("AAPL");
   const [quote, setQuote] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [priceChartData, setPriceChartData] = useState([]);
+  const [chartLoading, setChartLoading] = useState(false);
 
   const [tradeSymbol, setTradeSymbol] = useState("AAPL");
   const [tradeQuantity, setTradeQuantity] = useState(1);
@@ -250,6 +255,7 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
       }
 
       setQuote(response.data);
+      await fetchPriceChart(response.data.symbol);
     } catch (error) {
       console.error("Error fetching quote:", error);
       setMessage({
@@ -262,6 +268,33 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
       setLoading(false);
     }
   }
+
+  async function fetchPriceChart(tickerSymbol) {
+  if (!tickerSymbol) return;
+
+  try {
+    setChartLoading(true);
+
+    const response = await axios.get(
+      `${API_BASE_URL}/candles/${tickerSymbol.toUpperCase()}`
+    );
+
+    const formattedData = (response.data.candles || []).map((item) => ({
+      date: new Date(item.date * 1000).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+      }),
+      close: item.close,
+    }));
+
+    setPriceChartData(formattedData);
+  } catch (error) {
+    console.error("Error fetching price chart:", error);
+    setPriceChartData([]);
+  } finally {
+    setChartLoading(false);
+  }
+}
 
       async function placeTrade(type) {
         if (Number(tradeQuantity) <= 0) {
@@ -361,6 +394,7 @@ async function selectStockResult(result) {
 
     const response = await axios.get(`${API_BASE_URL}/quote/${selectedSymbol}`);
     setQuote(response.data);
+    await fetchPriceChart(response.data.symbol);
   } catch (error) {
     console.error("Error fetching selected quote:", error);
     setMessage({
@@ -509,7 +543,6 @@ function formatNewsDate(timestamp) {
   useEffect(() => {
     fetchPortfolio();
     fetchMarketNews();
-    fetchWatchlistQuotes();
   }, []);
 
   useEffect(() => {
@@ -535,6 +568,10 @@ useEffect(() => {
 
   return () => clearInterval(carouselInterval);
 }, [marketNews.length]);
+
+useEffect(() => {
+  fetchWatchlistQuotes();
+}, [watchlist]);
 
 useEffect(() => {
   const interval = setInterval(() => {
@@ -1009,6 +1046,35 @@ return (
             </div>
           </div>
         )}
+      <div className="price-chart-panel">
+  <div className="analytics-title-row">
+    <h3>{quote ? `${quote.symbol} Price Chart` : "Price Chart"}</h3>
+    <span className="chart-chip">30D daily close</span>
+  </div>
+
+  {chartLoading ? (
+    <p className="empty-state">Loading price chart...</p>
+  ) : priceChartData.length > 0 ? (
+    <ResponsiveContainer width="100%" height={280}>
+      <LineChart data={priceChartData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis domain={["auto", "auto"]} />
+        <Tooltip formatter={(value) => formatMoney(value)} />
+        <Line
+          type="monotone"
+          dataKey="close"
+          strokeWidth={3}
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  ) : (
+    <p className="empty-state">
+      Search a ticker or select a stock from Markets to load a chart.
+    </p>
+  )}
+        </div>
       </div>
 
       <div className="card trade-ticket-card">
