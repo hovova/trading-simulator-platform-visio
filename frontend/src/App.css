@@ -83,6 +83,13 @@ body {
   font-weight: 800;
   box-shadow: none;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
 }
 
 .nav-item:hover {

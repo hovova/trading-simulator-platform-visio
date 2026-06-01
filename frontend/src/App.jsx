@@ -12,21 +12,63 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+
+import {
+  BarChart3,
+  BookOpen,
+  Briefcase,
+  CandlestickChart,
+  CircleDollarSign,
+  ClipboardList,
+  LayoutDashboard,
+  LineChart,
+  Search,
+  Settings,
+  Star,
+} from "lucide-react";
+
 import "./App.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const CHART_COLORS = ["#38bdf8", "#22c55e", "#f97316", "#a855f7", "#eab308", "#ef4444"];
 
 const NAV_ITEMS = [
-  "Dashboard",
-  "Markets",
-  "Watchlist",
-  "Trade",
-  "Positions",
-  "Orders",
-  "Analytics",
-  "Education",
-  "Settings",
+  {
+    name: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Markets",
+    icon: Search,
+  },
+  {
+    name: "Watchlist",
+    icon: Star,
+  },
+  {
+    name: "Trade",
+    icon: CandlestickChart,
+  },
+  {
+    name: "Positions",
+    icon: Briefcase,
+  },
+  {
+    name: "Orders",
+    icon: ClipboardList,
+  },
+  {
+    name: "Analytics",
+    icon: BarChart3,
+  },
+  {
+    name: "Education",
+    icon: BookOpen,
+  },
+  {
+    name: "Settings",
+    icon: Settings,
+  },
 ];
 
 function formatMoney(value) {
@@ -280,16 +322,21 @@ return (
         </div>
       </div>
 
-      <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item}
-            className={`nav-item ${activePage === item ? "active" : ""}`}
-            onClick={() => setActivePage(item)}
-          >
-            {item}
-          </button>
-        ))}
+            <nav className="sidebar-nav">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.name}
+              className={`nav-item ${activePage === item.name ? "active" : ""}`}
+              onClick={() => setActivePage(item.name)}
+            >
+              <Icon size={18} />
+              <span>{item.name}</span>
+            </button>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">
