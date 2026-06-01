@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import initialise_database
-from market_data import fetch_quote, fetch_price
+from market_data import fetch_quote, fetch_price, search_symbols
 from models import TradeRequest
 from portfolio import get_portfolio, buy_stock, sell_stock, get_trades, reset_portfolio
 
@@ -55,6 +55,15 @@ def health_check():
 @app.get("/quote/{symbol}", tags=["Market Data"])
 def get_quote(symbol: str):
     response = fetch_quote(symbol)
+
+    if isinstance(response, dict) and "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+
+    return response
+
+@app.get("/search/{query}", tags=["Market Data"])
+def search(query: str):
+    response = search_symbols(query)
 
     if isinstance(response, dict) and "error" in response:
         raise HTTPException(status_code=400, detail=response["error"])

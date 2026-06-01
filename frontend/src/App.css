@@ -674,4 +674,26 @@ td {
     grid-template-columns: 1fr;
   }
 }
+.market-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.market-results {
+  margin-top: 18px;
+}
+
+.compact-button {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .market-search {
+    grid-template-columns: 1fr;
+  }
+}
 }

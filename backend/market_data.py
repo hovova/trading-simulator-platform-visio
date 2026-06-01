@@ -48,3 +48,44 @@ def fetch_price(symbol: str):
         return None
 
     return quote.get("current_price")
+
+def search_symbols(query: str):
+    if not FINNHUB_API_KEY:
+        return {
+            "error": "Finnhub API key is missing. Check backend/.env."
+        }
+
+    url = "https://finnhub.io/api/v1/search"
+
+    params = {
+        "q": query,
+        "token": FINNHUB_API_KEY
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "error": "Could not search symbols",
+            "status_code": response.status_code,
+            "details": response.text
+        }
+
+    data = response.json()
+    results = data.get("result", [])
+
+    cleaned_results = []
+
+    for item in results[:10]:
+        cleaned_results.append({
+            "symbol": item.get("symbol"),
+            "description": item.get("description"),
+            "type": item.get("type"),
+            "display_symbol": item.get("displaySymbol")
+        })
+
+    return {
+        "query": query,
+        "count": len(cleaned_results),
+        "results": cleaned_results
+    }

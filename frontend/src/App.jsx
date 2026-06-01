@@ -120,6 +120,10 @@ function App() {
   const [tradeFilter, setTradeFilter] = useState("");
   const [activePage, setActivePage] = useState("Dashboard");
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const filteredTrades =
     portfolio?.trades?.filter((trade) =>
       trade.symbol.toLowerCase().includes(tradeFilter.toLowerCase())
@@ -269,6 +273,66 @@ const totalHoldings = holdingsArray.length;
       setTradeLoading(false);
     }
   }
+
+  async function searchStocks() {
+  if (!searchQuery.trim()) {
+    setMessage({
+      type: "error",
+      text: "Enter a company name or ticker to search.",
+    });
+    return;
+  }
+
+  try {
+    setSearchLoading(true);
+    setMessage(null);
+
+    const response = await axios.get(
+      `${API_BASE_URL}/search/${searchQuery.trim()}`
+    );
+
+    setSearchResults(response.data.results || []);
+  } catch (error) {
+    console.error("Error searching stocks:", error);
+    setMessage({
+      type: "error",
+      text: getErrorMessage(
+        error,
+        "Could not search stocks. Check backend server."
+      ),
+    });
+  } finally {
+    setSearchLoading(false);
+  }
+}
+
+async function selectStockResult(result) {
+  const selectedSymbol = result.symbol;
+
+  setSymbol(selectedSymbol);
+  setTradeSymbol(selectedSymbol);
+  setActivePage("Trade");
+
+  try {
+    setLoading(true);
+    setMessage(null);
+
+    const response = await axios.get(`${API_BASE_URL}/quote/${selectedSymbol}`);
+    setQuote(response.data);
+  } catch (error) {
+    console.error("Error fetching selected quote:", error);
+    setMessage({
+      type: "error",
+      text: getErrorMessage(
+        error,
+        "Could not fetch quote for selected stock."
+      ),
+    });
+  } finally {
+    setLoading(false);
+  }
+}
+
 
   async function resetPortfolio() {
     const confirmed = window.confirm(
@@ -603,7 +667,9 @@ return (
             <div className="card-header">
               <div>
                 <h2>Stock Quote</h2>
-                <p className="muted">Search a ticker to retrieve latest quote data.</p>
+                  <p className="muted">
+                    Use a ticker directly, or search by company name from the Markets page.
+                  </p>
               </div>
             </div>
 
@@ -806,20 +872,67 @@ return (
         </section>
       )}
 
-      {activePage === "Markets" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Markets</h2>
-              <p className="muted">Stock search and market discovery in development.</p>
-            </div>
-          </div>
-
-          <p className="empty-state">
-            Next feature: search stocks by company name or ticker, then quote, trade, or add them to a watchlist.
+        {activePage === "Markets" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Markets</h2>
+          <p className="muted">
+            Search stocks by company name or ticker, then quote or trade them.
           </p>
-        </section>
+        </div>
+      </div>
+
+      <div className="market-search">
+        <input
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search company or ticker, e.g. Apple, Microsoft, TSLA"
+        />
+
+        <button onClick={searchStocks}>
+          {searchLoading ? "Searching..." : "Search"}
+        </button>
+      </div>
+
+      {searchResults.length > 0 ? (
+        <div className="table-wrapper market-results">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Company</th>
+                <th>Type</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {searchResults.map((result, index) => (
+                <tr key={`${result.symbol}-${index}`}>
+                  <td>{result.symbol}</td>
+                  <td>{result.description || "N/A"}</td>
+                  <td>{result.type || "N/A"}</td>
+                  <td>
+                    <button
+                      className="secondary-button compact-button"
+                      onClick={() => selectStockResult(result)}
+                    >
+                      Quote / Trade
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="empty-state">
+          Search for a company name like Apple, Microsoft, Tesla or Nvidia.
+        </p>
       )}
+    </section>
+  )}
 
       {activePage === "Watchlist" && (
         <section className="card">
