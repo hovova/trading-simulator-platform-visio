@@ -18,10 +18,8 @@ import {
   BookOpen,
   Briefcase,
   CandlestickChart,
-  CircleDollarSign,
   ClipboardList,
   LayoutDashboard,
-  LineChart,
   Search,
   Settings,
   Star,
@@ -120,6 +118,7 @@ function App() {
 
   const [tradeSymbol, setTradeSymbol] = useState("AAPL");
   const [tradeQuantity, setTradeQuantity] = useState(1);
+  const [tradeSide, setTradeSide] = useState("BUY");
   const [tradeLoading, setTradeLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [tradeFilter, setTradeFilter] = useState("");
@@ -205,6 +204,21 @@ const worstHolding =
 const totalTrades = portfolio?.trades?.length || 0;
 const totalHoldings = holdingsArray.length;
 
+const selectedHolding = portfolio?.holdings?.[tradeSymbol.toUpperCase()];
+const estimatedPrice =
+  quote?.symbol === tradeSymbol.toUpperCase()
+    ? quote.current_price
+    : selectedHolding?.current_price || selectedHolding?.average_price || 0;
+
+const estimatedQuantity = Number(tradeQuantity) || 0;
+const estimatedOrderValue = estimatedPrice * estimatedQuantity;
+const hasEnoughCash = portfolio
+  ? portfolio.cash >= estimatedOrderValue
+  : true;
+
+const ownedQuantity = selectedHolding?.quantity || 0;
+const hasEnoughShares = ownedQuantity >= estimatedQuantity;
+
   async function fetchPortfolio() {
     try {
       const response = await axios.get(`${API_BASE_URL}/portfolio`);
@@ -256,6 +270,8 @@ const totalHoldings = holdingsArray.length;
           return;
         }
 
+
+
         try {
           setTradeLoading(true);
           setMessage(null);
@@ -292,6 +308,10 @@ const totalHoldings = holdingsArray.length;
     } finally {
       setTradeLoading(false);
     }
+  }
+
+  function submitTradeTicket() {
+    placeTrade(tradeSide);
   }
 
   async function searchStocks() {
@@ -872,109 +892,166 @@ return (
   </section>
 )}
 
-      {activePage === "Trade" && (
-        <section className="grid-two">
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <h2>Stock Quote</h2>
-                  <p className="muted">
-                    Use a ticker directly, or search by company name from the Markets page.
-                  </p>
-              </div>
-            </div>
-
-            <div className="quote-form">
-              <input
-                value={symbol}
-                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-                placeholder="Enter ticker, e.g. AAPL"
-              />
-
-              <button onClick={fetchQuote}>
-                {loading ? "Loading..." : "Get Quote"}
-              </button>
-            </div>
-
-            {quote && (
-              <div className="quote-box">
-                <div className="quote-item">
-                  <strong>Symbol</strong>
-                  <span>{quote.symbol}</span>
-                </div>
-
-                <div className="quote-item">
-                  <strong>Current</strong>
-                  <span>{formatMoney(quote.current_price)}</span>
-                </div>
-
-                <div className="quote-item">
-                  <strong>Open</strong>
-                  <span>{formatMoney(quote.open_price)}</span>
-                </div>
-
-                <div className="quote-item">
-                  <strong>High</strong>
-                  <span>{formatMoney(quote.high_price)}</span>
-                </div>
-
-                <div className="quote-item">
-                  <strong>Low</strong>
-                  <span>{formatMoney(quote.low_price)}</span>
-                </div>
-              </div>
-            )}
+        {activePage === "Trade" && (
+    <section className="grid-two">
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h2>Stock Quote</h2>
+            <p className="muted">
+              Use a ticker directly, or search by company name from the Markets page.
+            </p>
           </div>
+        </div>
 
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <h2>Trade Simulator</h2>
-                <p className="muted">Place simulated buy and sell orders.</p>
-              </div>
+        <div className="quote-form">
+          <input
+            value={symbol}
+            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+            placeholder="Enter ticker, e.g. AAPL"
+          />
+
+          <button onClick={fetchQuote}>
+            {loading ? "Loading..." : "Get Quote"}
+          </button>
+        </div>
+
+        {quote && (
+          <div className="quote-box">
+            <div className="quote-item">
+              <strong>Symbol</strong>
+              <span>{quote.symbol}</span>
             </div>
 
-            <div className="trade-form">
-              <div>
-                <label>Ticker</label>
-                <input
-                  value={tradeSymbol}
-                  onChange={(event) => setTradeSymbol(event.target.value.toUpperCase())}
-                  placeholder="AAPL"
-                />
-              </div>
+            <div className="quote-item">
+              <strong>Current</strong>
+              <span>{formatMoney(quote.current_price)}</span>
+            </div>
 
-              <div>
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={tradeQuantity}
-                  onChange={(event) => setTradeQuantity(event.target.value)}
-                />
-              </div>
+            <div className="quote-item">
+              <strong>Open</strong>
+              <span>{formatMoney(quote.open_price)}</span>
+            </div>
 
-              <div className="trade-buttons">
-                <button
-                  className="buy-button"
-                  onClick={() => placeTrade("BUY")}
-                  disabled={tradeLoading}
-                >
-                  {tradeLoading ? "Processing..." : "Buy"}
-                </button>
+            <div className="quote-item">
+              <strong>High</strong>
+              <span>{formatMoney(quote.high_price)}</span>
+            </div>
 
-                <button
-                  className="sell-button"
-                  onClick={() => placeTrade("SELL")}
-                  disabled={tradeLoading}
-                >
-                  {tradeLoading ? "Processing..." : "Sell"}
-                </button>
-              </div>
+            <div className="quote-item">
+              <strong>Low</strong>
+              <span>{formatMoney(quote.low_price)}</span>
             </div>
           </div>
-        </section>
-      )}
+        )}
+      </div>
+
+      <div className="card trade-ticket-card">
+        <div className="card-header">
+          <div>
+            <h2>Trade Ticket</h2>
+            <p className="muted">Build and submit simulated market orders.</p>
+          </div>
+        </div>
+
+        <div className="trade-ticket">
+          <div className="side-toggle">
+            <button
+              className={`side-button ${tradeSide === "BUY" ? "active buy" : ""}`}
+              onClick={() => setTradeSide("BUY")}
+            >
+              Buy
+            </button>
+
+            <button
+              className={`side-button ${tradeSide === "SELL" ? "active sell" : ""}`}
+              onClick={() => setTradeSide("SELL")}
+            >
+              Sell
+            </button>
+          </div>
+
+          <div className="ticket-field">
+            <label>Ticker</label>
+            <input
+              value={tradeSymbol}
+              onChange={(event) => setTradeSymbol(event.target.value.toUpperCase())}
+              placeholder="AAPL"
+            />
+          </div>
+
+          <div className="ticket-field">
+            <label>Order Type</label>
+            <div className="order-type-pill">Market Order</div>
+          </div>
+
+          <div className="ticket-field">
+            <label>Quantity</label>
+            <input
+              type="number"
+              min="1"
+              value={tradeQuantity}
+              onChange={(event) => setTradeQuantity(event.target.value)}
+            />
+          </div>
+
+          <div className="ticket-estimates">
+            <div>
+              <span>Estimated Price</span>
+              <strong>{formatMoney(estimatedPrice)}</strong>
+            </div>
+
+            <div>
+              <span>
+                {tradeSide === "BUY" ? "Estimated Cost" : "Estimated Proceeds"}
+              </span>
+              <strong>{formatMoney(estimatedOrderValue)}</strong>
+            </div>
+
+            <div>
+              <span>Available Cash</span>
+              <strong>{formatMoney(portfolio?.cash)}</strong>
+            </div>
+
+            <div>
+              <span>Owned Shares</span>
+              <strong>{ownedQuantity}</strong>
+            </div>
+          </div>
+
+          {tradeSide === "BUY" && !hasEnoughCash && (
+            <p className="ticket-warning">
+              Not enough cash for this simulated buy order.
+            </p>
+          )}
+
+          {tradeSide === "SELL" && !hasEnoughShares && (
+            <p className="ticket-warning">
+              You do not own enough shares to sell this quantity.
+            </p>
+          )}
+
+          <button
+            className={`submit-order-button ${
+              tradeSide === "BUY" ? "buy-submit" : "sell-submit"
+            }`}
+            onClick={submitTradeTicket}
+            disabled={
+              tradeLoading ||
+              estimatedQuantity <= 0 ||
+              (tradeSide === "BUY" && !hasEnoughCash) ||
+              (tradeSide === "SELL" && !hasEnoughShares)
+            }
+          >
+            {tradeLoading
+              ? "Processing..."
+              : `${tradeSide === "BUY" ? "Submit Buy Order" : "Submit Sell Order"}`}
+          </button>
+        </div>
+      </div>
+    </section>
+  )}
+    
 
       {activePage === "Positions" && (
         <section className="card">

@@ -740,6 +740,129 @@ td {
   font-weight: 800;
 }
 
+.trade-ticket-card {
+  min-height: 100%;
+}
+
+.trade-ticket {
+  display: grid;
+  gap: 18px;
+}
+
+.side-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.side-button {
+  box-shadow: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+}
+
+.side-button:hover {
+  transform: none;
+  background: rgba(30, 41, 59, 0.75);
+}
+
+.side-button.active.buy {
+  color: #f8fafc;
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.side-button.active.sell {
+  color: #f8fafc;
+  background: linear-gradient(135deg, #b91c1c, #f97316);
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+.ticket-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.order-type-pill {
+  padding: 15px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.72);
+  color: #e5e7eb;
+  font-weight: 800;
+}
+
+.ticket-estimates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ticket-estimates div {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ticket-estimates span {
+  display: block;
+  margin-bottom: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ticket-estimates strong {
+  color: #f8fafc;
+  font-size: 18px;
+}
+
+.ticket-warning {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  color: #fdba74;
+  font-weight: 800;
+}
+
+.submit-order-button {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 16px;
+  font-size: 15px;
+}
+
+.buy-submit {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.22);
+}
+
+.sell-submit {
+  background: linear-gradient(135deg, #b91c1c, #f97316);
+  box-shadow: 0 10px 25px rgba(249, 115, 22, 0.22);
+}
+
+@media (max-width: 640px) {
+  .ticket-estimates {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .news-card {
     grid-template-columns: 1fr;
