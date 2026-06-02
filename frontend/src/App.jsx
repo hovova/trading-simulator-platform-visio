@@ -112,6 +112,10 @@ const NAV_SECTIONS = [
         icon: BarChart3,
       },
       {
+        name: "Company",
+        icon: Search,
+      },
+      {
         name: "Calendar",
         icon: Globe2,
       },
@@ -171,6 +175,30 @@ function formatPercent(value) {
   return `${value}%`;
 }
 
+function formatLargeNumber(value) {
+  if (value === undefined || value === null || value === "") return "N/A";
+
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(2)}T`;
+  }
+
+  if (value >= 1_000) {
+    return `${(value / 1_000).toFixed(2)}B`;
+  }
+
+  return value.toLocaleString("en-US");
+}
+
+function formatMetric(value, suffix = "") {
+  if (value === undefined || value === null || value === "") return "N/A";
+
+  if (typeof value === "number") {
+    return `${value.toFixed(2)}${suffix}`;
+  }
+
+  return `${value}${suffix}`;
+}
+
 function getPnLClass(value) {
   if (value > 0) return "positive";
   if (value < 0) return "negative";
@@ -201,6 +229,8 @@ function App() {
   const [priceChartData, setPriceChartData] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
   const [chartRange, setChartRange] = useState("1mo");
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companyLoading, setCompanyLoading] = useState(false);
 
   const [tradeSymbol, setTradeSymbol] = useState("AAPL");
   const [tradeQuantity, setTradeQuantity] = useState(1);
@@ -567,6 +597,31 @@ async function selectStockResult(result) {
       });
     }
   }
+
+async function fetchCompanyDetails(tickerSymbol) {
+  if (!tickerSymbol) return;
+
+  try {
+    setCompanyLoading(true);
+    setMessage(null);
+
+    const response = await axios.get(
+      `${API_BASE_URL}/company/${tickerSymbol.toUpperCase()}`
+    );
+
+    setSelectedCompany(response.data);
+    setActivePage("Company");
+  } catch (error) {
+    console.error("Error fetching company details:", error);
+    setMessage({
+      type: "error",
+      text: getErrorMessage(error, "Could not fetch company details."),
+    });
+  } finally {
+    setCompanyLoading(false);
+  }
+}
+
 
   async function fetchWatchlistQuotes() {
   if (watchlist.length === 0) {
@@ -1383,7 +1438,14 @@ return (
                 <tbody>
                   {Object.entries(portfolio.holdings).map(([ticker, holding]) => (
                     <tr key={ticker}>
-                      <td>{ticker}</td>
+                      <td>
+                        <button
+                          className="link-button"
+                          onClick={() => fetchCompanyDetails(ticker)}
+                        >
+                          {ticker}
+                        </button>
+                      </td>
                       <td>{holding.quantity}</td>
                       <td>{formatMoney(holding.average_price)}</td>
                       <td>{formatMoney(holding.current_price)}</td>
@@ -1502,7 +1564,14 @@ return (
               {searchResults.map((result, index) => (
                 <tr key={`${result.symbol}-${index}`}>
                   <td>{result.symbol}</td>
-                  <td>{result.description || "N/A"}</td>
+                  <td>
+                    <button
+                      className="link-button"
+                      onClick={() => fetchCompanyDetails(result.symbol)}
+                    >
+                      {result.description || "N/A"}
+                    </button>
+                  </td>
                   <td>{result.type || "N/A"}</td>
                   <td>
                     <div className="table-actions">
@@ -1572,7 +1641,14 @@ return (
               return (
                 <tr key={item.symbol}>
                   <td>{item.symbol}</td>
-                  <td>{item.description}</td>
+                  <td>
+                    <button
+                      className="link-button"
+                      onClick={() => fetchCompanyDetails(item.symbol)}
+                    >
+                      {item.description}
+                    </button>
+                  </td>
                   <td>
                     {quoteData
                       ? formatMoney(quoteData.current_price)
@@ -1790,6 +1866,165 @@ return (
           </p>
         </section>
       )}
+
+      {activePage === "Company" && (
+  <section className="card">
+    <div className="card-header">
+      <div>
+        <h2>
+          {selectedCompany?.profile?.name ||
+            selectedCompany?.symbol ||
+            "Company Details"}
+        </h2>
+        <p className="muted">
+          Company profile, valuation, liquidity and risk metrics.
+        </p>
+      </div>
+
+      <div className="header-actions">
+        <button
+          className="secondary-button"
+          onClick={() => fetchCompanyDetails(selectedCompany?.symbol || symbol)}
+        >
+          {companyLoading ? "Refreshing..." : "Refresh"}
+        </button>
+
+        {selectedCompany?.symbol && (
+          <button
+            className="quote-trade-button"
+            onClick={() =>
+              selectStockResult({
+                symbol: selectedCompany.symbol,
+                description: selectedCompany?.profile?.name || selectedCompany.symbol,
+                type: "Common Stock",
+              })
+            }
+          >
+            Quote / Trade
+          </button>
+        )}
+      </div>
+    </div>
+
+    {selectedCompany ? (
+      <>
+        <div className="company-hero">
+          {selectedCompany.profile?.logo && (
+            <img
+              src={selectedCompany.profile.logo}
+              alt={selectedCompany.profile?.name}
+              className="company-logo"
+            />
+          )}
+
+          <div>
+            <p className="eyebrow">{selectedCompany.symbol}</p>
+            <h3>{selectedCompany.profile?.name || selectedCompany.symbol}</h3>
+            <p className="muted">
+              {selectedCompany.profile?.finnhubIndustry || "Industry N/A"} ·{" "}
+              {selectedCompany.profile?.exchange || "Exchange N/A"} ·{" "}
+              {selectedCompany.profile?.country || "Country N/A"}
+            </p>
+
+            {selectedCompany.profile?.weburl && (
+              <a
+                className="news-link"
+                href={selectedCompany.profile.weburl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Company website
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="summary-grid company-metrics-grid">
+          <div className="metric" title="Market capitalisation is the total market value of the company's equity.">
+            <p className="label">Market Cap</p>
+            <p className="value">
+              ${formatLargeNumber(selectedCompany.profile?.marketCapitalization)}
+            </p>
+          </div>
+
+          <div className="metric" title="P/E ratio compares a company’s share price to its earnings per share.">
+            <p className="label">P/E Ratio</p>
+            <p className="value">
+              {formatMetric(selectedCompany.metrics?.peBasicExclExtraTTM)}
+            </p>
+          </div>
+
+          <div className="metric" title="Dividend yield is annual dividend income as a percentage of the share price.">
+            <p className="label">Dividend Yield</p>
+            <p className="value">
+              {formatMetric(selectedCompany.metrics?.dividendYieldIndicatedAnnual, "%")}
+            </p>
+          </div>
+
+          <div className="metric" title="Beta measures how sensitive the stock is to market movements.">
+            <p className="label">Beta</p>
+            <p className="value">{formatMetric(selectedCompany.metrics?.beta)}</p>
+          </div>
+
+          <div className="metric" title="Highest price reached in the last 52 weeks.">
+            <p className="label">52W High</p>
+            <p className="value">
+              {formatMoney(selectedCompany.metrics?.["52WeekHigh"])}
+            </p>
+          </div>
+
+          <div className="metric" title="Lowest price reached in the last 52 weeks.">
+            <p className="label">52W Low</p>
+            <p className="value">
+              {formatMoney(selectedCompany.metrics?.["52WeekLow"])}
+            </p>
+          </div>
+
+          <div className="metric" title="Average trading volume helps assess liquidity.">
+            <p className="label">10D Avg Volume</p>
+            <p className="value">
+              {formatLargeNumber(selectedCompany.metrics?.["10DayAverageTradingVolume"])}
+            </p>
+          </div>
+
+          <div className="metric" title="EPS is earnings per share over the trailing twelve months.">
+            <p className="label">EPS TTM</p>
+            <p className="value">
+              {formatMetric(selectedCompany.metrics?.epsBasicExclExtraItemsTTM)}
+            </p>
+          </div>
+        </div>
+
+        <div className="company-notes-grid">
+          <div className="metric">
+            <p className="label">Valuation View</p>
+            <p className="muted">
+              P/E and dividend yield help describe how the market prices the company relative to earnings and income.
+            </p>
+          </div>
+
+          <div className="metric">
+            <p className="label">Liquidity View</p>
+            <p className="muted">
+              Average trading volume gives a rough idea of how actively the stock trades.
+            </p>
+          </div>
+
+          <div className="metric">
+            <p className="label">Risk View</p>
+            <p className="muted">
+              Beta and 52-week range help describe volatility and sensitivity to broader market movement.
+            </p>
+          </div>
+        </div>
+      </>
+    ) : (
+      <p className="empty-state">
+        Select a company from Markets, Watchlist or Positions to view details.
+      </p>
+    )}
+  </section>
+)}
 
       {activePage === "Settings" && (
         <section className="card">

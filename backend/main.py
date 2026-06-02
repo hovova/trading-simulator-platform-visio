@@ -8,6 +8,8 @@ from market_data import (
     search_symbols,
     fetch_market_news,
     fetch_stock_candles,
+    fetch_company_profile,
+    fetch_company_metrics,
 )
 from models import TradeRequest
 from portfolio import get_portfolio, buy_stock, sell_stock, get_trades, reset_portfolio
@@ -138,3 +140,20 @@ def candles(symbol: str, chart_range: str = Query("1mo", alias="range")):
         raise HTTPException(status_code=400, detail=response)
 
     return response
+
+@app.get("/company/{symbol}", tags=["Market Data"])
+def company(symbol: str):
+    profile = fetch_company_profile(symbol)
+    metrics = fetch_company_metrics(symbol)
+
+    if isinstance(profile, dict) and "error" in profile:
+        raise HTTPException(status_code=400, detail=profile)
+
+    if isinstance(metrics, dict) and "error" in metrics:
+        metrics = {}
+
+    return {
+        "symbol": symbol.upper(),
+        "profile": profile,
+        "metrics": metrics
+    }

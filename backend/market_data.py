@@ -255,3 +255,62 @@ def fetch_stock_candles(symbol: str, chart_range: str = "1mo"):
         "count": len(candles),
         "candles": candles
     }
+
+def fetch_company_profile(symbol: str):
+    if not FINNHUB_API_KEY:
+        return {
+            "error": "Finnhub API key is missing. Check backend/.env."
+        }
+
+    url = "https://finnhub.io/api/v1/stock/profile2"
+
+    params = {
+        "symbol": symbol.upper(),
+        "token": FINNHUB_API_KEY
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "error": "Could not fetch company profile",
+            "status_code": response.status_code,
+            "details": response.text
+        }
+
+    data = response.json()
+
+    if not data or data == {}:
+        return {
+            "error": "No company profile found for this symbol"
+        }
+
+    return data
+
+
+def fetch_company_metrics(symbol: str):
+    if not FINNHUB_API_KEY:
+        return {
+            "error": "Finnhub API key is missing. Check backend/.env."
+        }
+
+    url = "https://finnhub.io/api/v1/stock/metric"
+
+    params = {
+        "symbol": symbol.upper(),
+        "metric": "all",
+        "token": FINNHUB_API_KEY
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "error": "Could not fetch company metrics",
+            "status_code": response.status_code,
+            "details": response.text
+        }
+
+    data = response.json()
+
+    return data.get("metric", {})
