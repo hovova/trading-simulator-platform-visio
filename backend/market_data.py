@@ -1,6 +1,5 @@
 import os
 import time
-from wsgiref import headers
 import requests
 from dotenv import load_dotenv
 
@@ -137,38 +136,82 @@ def fetch_market_news(category: str = "general"):
     }
 
 
-def fetch_stock_candles(symbol: str):
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol.upper()}"
-
-    params = {
-        "range": "1mo",
-        "interval": "1d",
+def fetch_stock_candles(symbol: str, chart_range: str = "1mo"):
+    allowed_ranges = {
+        "1d": {
+            "yahoo_range": "1d",
+            "interval": "5m",
+            "label": "1D"
+        },
+        "1w": {
+            "yahoo_range": "5d",
+            "interval": "15m",
+            "label": "1W"
+        },
+        "1mo": {
+            "yahoo_range": "1mo",
+            "interval": "1d",
+            "label": "1M"
+        },
+        "3mo": {
+            "yahoo_range": "3mo",
+            "interval": "1d",
+            "label": "3M"
+        },
+        "ytd": {
+            "yahoo_range": "ytd",
+            "interval": "1d",
+            "label": "YTD"
+        },
+        "1y": {
+            "yahoo_range": "1y",
+            "interval": "1wk",
+            "label": "1Y"
+        },
+        "max": {
+            "yahoo_range": "max",
+            "interval": "1mo",
+            "label": "MAX"
+        },
     }
 
-    headers = {
+    selected_range = allowed_ranges.get(chart_range, allowed_ranges["1mo"])
+
+    yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol.upper()}"
+
+    yahoo_params = {
+        "range": selected_range["yahoo_range"],
+        "interval": selected_range["interval"],
+    }
+
+    yahoo_headers = {
         "User-Agent": "Mozilla/5.0",
         "Accept": "application/json",
     }
 
-    response = requests.get(url, params=params, headers=headers)
+    yahoo_response = requests.get(
+        yahoo_url,
+        params=yahoo_params,
+        headers=yahoo_headers
+    )
 
-    if response.status_code != 200:
+    if yahoo_response.status_code != 200:
         return {
             "error": "Could not fetch stock candles",
-            "status_code": response.status_code,
-            "details": response.text
+            "yahoo_status_code": yahoo_response.status_code,
+            "details": yahoo_response.text
         }
 
-    data = response.json()
+    yahoo_data = yahoo_response.json()
 
-    chart = data.get("chart", {})
+    chart = yahoo_data.get("chart", {})
     result_list = chart.get("result")
     yahoo_error = chart.get("error")
 
     if not result_list:
         return {
             "error": "No candle data available for this symbol",
-            "details": yahoo_error or data
+            "details": yahoo_error or yahoo_data
         }
 
     result = result_list[0]
@@ -205,6 +248,10 @@ def fetch_stock_candles(symbol: str):
 
     return {
         "symbol": symbol.upper(),
+        "source": "Yahoo Finance",
+        "range": chart_range,
+        "range_label": selected_range["label"],
+        "interval": selected_range["interval"],
         "count": len(candles),
         "candles": candles
     }

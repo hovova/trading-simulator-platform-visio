@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query   
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import initialise_database
@@ -131,8 +131,8 @@ def reset():
     return reset_portfolio()
 
 @app.get("/candles/{symbol}", tags=["Market Data"])
-def candles(symbol: str):
-    response = fetch_stock_candles(symbol)
+def candles(symbol: str, chart_range: str = Query("1mo", alias="range")):
+    response = fetch_stock_candles(symbol, chart_range)
 
     if isinstance(response, dict) and "error" in response:
         raise HTTPException(status_code=400, detail=response)

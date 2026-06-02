@@ -33,6 +33,36 @@ import "./App.css";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 const CHART_COLORS = ["#38bdf8", "#22c55e", "#f97316", "#a855f7", "#eab308", "#ef4444"];
+const CHART_RANGES = [
+  {
+    label: "1D",
+    value: "1d",
+  },
+  {
+    label: "1W",
+    value: "1w",
+  },
+  {
+    label: "1M",
+    value: "1mo",
+  },
+  {
+    label: "3M",
+    value: "3mo",
+  },
+  {
+    label: "YTD",
+    value: "ytd",
+  },
+  {
+    label: "1Y",
+    value: "1y",
+  },
+  {
+    label: "MAX",
+    value: "max",
+  },
+];
 
 const NAV_ITEMS = [
   {
@@ -120,6 +150,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [priceChartData, setPriceChartData] = useState([]);
   const [chartLoading, setChartLoading] = useState(false);
+  const [chartRange, setChartRange] = useState("1mo");
 
   const [tradeSymbol, setTradeSymbol] = useState("AAPL");
   const [tradeQuantity, setTradeQuantity] = useState(1);
@@ -269,21 +300,26 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
     }
   }
 
-  async function fetchPriceChart(tickerSymbol) {
+      async function fetchPriceChart(tickerSymbol, selectedRange = chartRange) {
   if (!tickerSymbol) return;
 
   try {
     setChartLoading(true);
+    setPriceChartData([]);
 
     const response = await axios.get(
-      `${API_BASE_URL}/candles/${tickerSymbol.toUpperCase()}`
+      `${API_BASE_URL}/candles/${tickerSymbol.toUpperCase()}?range=${selectedRange}&t=${Date.now()}`
     );
 
+    console.log("Chart response:", {
+      symbol: response.data.symbol,
+      range: response.data.range,
+      interval: response.data.interval,
+      count: response.data.count,
+    });
+
     const formattedData = (response.data.candles || []).map((item) => ({
-      date: new Date(item.date * 1000).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-      }),
+      timestamp: item.date * 1000,
       close: item.close,
     }));
 
@@ -293,6 +329,16 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
     setPriceChartData([]);
   } finally {
     setChartLoading(false);
+  }
+}
+
+  function changeChartRange(selectedRange) {
+  setChartRange(selectedRange);
+
+  const tickerToLoad = quote?.symbol || symbol;
+
+  if (tickerToLoad) {
+    fetchPriceChart(tickerToLoad, selectedRange);
   }
 }
 
@@ -1049,26 +1095,87 @@ return (
       <div className="price-chart-panel">
   <div className="analytics-title-row">
     <h3>{quote ? `${quote.symbol} Price Chart` : "Price Chart"}</h3>
-    <span className="chart-chip">30D daily close</span>
+
+    <div className="chart-range-tabs">
+      {CHART_RANGES.map((rangeOption) => (
+        <button
+          key={rangeOption.value}
+          className={`chart-range-button ${
+            chartRange === rangeOption.value ? "active" : ""
+          }`}
+          onClick={() => changeChartRange(rangeOption.value)}
+        >
+          {rangeOption.label}
+        </button>
+      ))}
+    </div>
   </div>
 
   {chartLoading ? (
     <p className="empty-state">Loading price chart...</p>
   ) : priceChartData.length > 0 ? (
     <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={priceChartData} margin={{ top: 20, right: 20, left: 0, bottom: 10 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis domain={["auto", "auto"]} />
-        <Tooltip formatter={(value) => formatMoney(value)} />
-        <Line
-          type="monotone"
-          dataKey="close"
-          strokeWidth={3}
-          dot={false}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+  <LineChart
+    key={`${quote?.symbol}-${chartRange}`}
+    data={priceChartData}
+    margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" />
+
+    <XAxis
+      dataKey="timestamp"
+      type="number"
+      domain={["dataMin", "dataMax"]}
+      tickFormatter={(value) => {
+        const dateObject = new Date(value);
+
+        if (chartRange === "1d" || chartRange === "1w") {
+          return dateObject.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        if (chartRange === "1y" || chartRange === "max") {
+          return dateObject.toLocaleDateString("en-GB", {
+            month: "short",
+            year: "2-digit",
+          });
+        }
+
+        return dateObject.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+        });
+      }}
+    />
+
+    <YAxis domain={["auto", "auto"]} />
+
+    <Tooltip
+      labelFormatter={(value) => {
+        const dateObject = new Date(value);
+
+        return dateObject.toLocaleString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }}
+      formatter={(value) => formatMoney(value)}
+    />
+
+    <Line
+      type="monotone"
+      dataKey="close"
+      strokeWidth={3}
+      dot={false}
+      isAnimationActive={false}
+    />
+  </LineChart>
+</ResponsiveContainer>
   ) : (
     <p className="empty-state">
       Search a ticker or select a stock from Markets to load a chart.

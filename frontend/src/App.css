@@ -512,6 +512,37 @@ button:disabled {
   border: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.chart-range-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chart-range-button {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  color: #94a3b8;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.chart-range-button:hover {
+  transform: none;
+  background: rgba(30, 41, 59, 0.9);
+  color: #f8fafc;
+}
+
+.chart-range-button.active {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.14);
+  border-color: rgba(56, 189, 248, 0.32);
+}
+
 .price-chart-panel h3 {
   margin: 0;
   color: #f8fafc;
