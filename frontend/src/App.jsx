@@ -112,10 +112,6 @@ const NAV_SECTIONS = [
         icon: BarChart3,
       },
       {
-        name: "Company",
-        icon: Search,
-      },
-      {
         name: "Calendar",
         icon: Globe2,
       },
@@ -231,6 +227,7 @@ function App() {
   const [chartRange, setChartRange] = useState("1mo");
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [companyLoading, setCompanyLoading] = useState(false);
+  const [companyLogos, setCompanyLogos] = useState({});
 
   const [tradeSymbol, setTradeSymbol] = useState("AAPL");
   const [tradeQuantity, setTradeQuantity] = useState(1);
@@ -517,7 +514,13 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
       `${API_BASE_URL}/search/${searchQuery.trim()}`
     );
 
-    setSearchResults(response.data.results || []);
+    const results = response.data.results || [];
+
+    setSearchResults(results);
+
+    results.slice(0, 8).forEach((result) => {
+      fetchCompanyLogo(result.symbol);
+    });
   } catch (error) {
     console.error("Error searching stocks:", error);
     setMessage({
@@ -610,6 +613,10 @@ async function fetchCompanyDetails(tickerSymbol) {
     );
 
     setSelectedCompany(response.data);
+    setCompanyLogos((currentLogos) => ({
+      ...currentLogos,
+      [response.data.symbol]: response.data.profile?.logo || "",
+    }));
     setActivePage("Company");
   } catch (error) {
     console.error("Error fetching company details:", error);
@@ -619,6 +626,23 @@ async function fetchCompanyDetails(tickerSymbol) {
     });
   } finally {
     setCompanyLoading(false);
+  }
+}
+
+async function fetchCompanyLogo(tickerSymbol) {
+  if (!tickerSymbol || companyLogos[tickerSymbol]) return;
+
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/company/${tickerSymbol.toUpperCase()}`
+    );
+
+    setCompanyLogos((currentLogos) => ({
+      ...currentLogos,
+      [response.data.symbol]: response.data.profile?.logo || "",
+    }));
+  } catch (error) {
+    console.error("Error fetching company logo:", error);
   }
 }
 
@@ -732,6 +756,12 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, []);
+
+useEffect(() => {
+  watchlist.forEach((item) => {
+    fetchCompanyLogo(item.symbol);
+  });
+}, [watchlist]);
 
 useEffect(() => {
   if (marketNews.length <= 1) return;
@@ -1553,8 +1583,8 @@ return (
           <table>
             <thead>
               <tr>
-                <th>Symbol</th>
                 <th>Company</th>
+                <th>Symbol</th>
                 <th>Type</th>
                 <th>Action</th>
               </tr>
@@ -1563,15 +1593,28 @@ return (
             <tbody>
               {searchResults.map((result, index) => (
                 <tr key={`${result.symbol}-${index}`}>
-                  <td>{result.symbol}</td>
                   <td>
                     <button
-                      className="link-button"
+                      className="company-cell-button"
                       onClick={() => fetchCompanyDetails(result.symbol)}
                     >
-                      {result.description || "N/A"}
+                      {companyLogos[result.symbol] ? (
+                        <img
+                          src={companyLogos[result.symbol]}
+                          alt={result.description || result.symbol}
+                          className="mini-company-logo"
+                        />
+                      ) : (
+                        <span className="mini-company-logo logo-placeholder">
+                          {result.symbol?.slice(0, 1)}
+                        </span>
+                      )}
+
+                      <span>{result.description || "N/A"}</span>
                     </button>
                   </td>
+
+                  <td>{result.symbol}</td>
                   <td>{result.type || "N/A"}</td>
                   <td>
                     <div className="table-actions">
@@ -1623,8 +1666,8 @@ return (
         <table>
           <thead>
             <tr>
-              <th>Symbol</th>
               <th>Company</th>
+              <th>Symbol</th>
               <th>Current Price</th>
               <th>Daily Change</th>
               <th>Daily Change %</th>
@@ -1640,15 +1683,28 @@ return (
 
               return (
                 <tr key={item.symbol}>
-                  <td>{item.symbol}</td>
                   <td>
                     <button
-                      className="link-button"
+                      className="company-cell-button"
                       onClick={() => fetchCompanyDetails(item.symbol)}
                     >
-                      {item.description}
+                      {companyLogos[item.symbol] ? (
+                        <img
+                          src={companyLogos[item.symbol]}
+                          alt={item.description || item.symbol}
+                          className="mini-company-logo"
+                        />
+                      ) : (
+                        <span className="mini-company-logo logo-placeholder">
+                          {item.symbol?.slice(0, 1)}
+                        </span>
+                      )}
+
+                      <span>{item.description}</span>
                     </button>
                   </td>
+
+                  <td>{item.symbol}</td>
                   <td>
                     {quoteData
                       ? formatMoney(quoteData.current_price)

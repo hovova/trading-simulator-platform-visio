@@ -987,6 +987,46 @@ td {
   margin-top: 18px;
 }
 
+.company-cell-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #e5e7eb;
+  font: inherit;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.company-cell-button:hover {
+  transform: none;
+  color: #38bdf8;
+}
+
+.mini-company-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: #ffffff;
+  padding: 5px;
+  flex-shrink: 0;
+}
+
+.logo-placeholder {
+  display: inline-grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  padding: 0;
+}
+
 @media (max-width: 640px) {
   .ticket-estimates {
     grid-template-columns: 1fr;
