@@ -22,11 +22,17 @@ import {
   Briefcase,
   CandlestickChart,
   ClipboardList,
+  Cookie,
+  FileText,
+  Globe2,
+  HelpCircle,
+  Info,
   LayoutDashboard,
+  Newspaper,
   Search,
   Settings,
   Star,
-  Newspaper,
+  Trophy,
 } from "lucide-react";
 
 import "./App.css";
@@ -64,46 +70,90 @@ const CHART_RANGES = [
   },
 ];
 
-const NAV_ITEMS = [
+const NAV_SECTIONS = [
   {
-    name: "Dashboard",
-    icon: LayoutDashboard,
+    title: "Trade",
+    items: [
+      {
+        name: "Dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        name: "Markets",
+        icon: Search,
+      },
+      {
+        name: "Watchlist",
+        icon: Star,
+      },
+      {
+        name: "Trade",
+        icon: CandlestickChart,
+      },
+      {
+        name: "Positions",
+        icon: Briefcase,
+      },
+      {
+        name: "Orders",
+        icon: ClipboardList,
+      },
+    ],
   },
   {
-    name: "Markets",
-    icon: Search,
+    title: "Research",
+    items: [
+      {
+        name: "News",
+        icon: Newspaper,
+      },
+      {
+        name: "Analytics",
+        icon: BarChart3,
+      },
+      {
+        name: "Calendar",
+        icon: Globe2,
+      },
+      {
+        name: "Leaderboard",
+        icon: Trophy,
+      },
+    ],
   },
   {
-    name: "News",
-    icon: Newspaper,
+    title: "Learn",
+    items: [
+      {
+        name: "Education",
+        icon: BookOpen,
+      },
+      {
+        name: "About",
+        icon: Info,
+      },
+    ],
   },
   {
-    name: "Watchlist",
-    icon: Star,
-  },
-  {
-    name: "Trade",
-    icon: CandlestickChart,
-  },
-  {
-    name: "Positions",
-    icon: Briefcase,
-  },
-  {
-    name: "Orders",
-    icon: ClipboardList,
-  },
-  {
-    name: "Analytics",
-    icon: BarChart3,
-  },
-  {
-    name: "Education",
-    icon: BookOpen,
-  },
-  {
-    name: "Settings",
-    icon: Settings,
+    title: "System",
+    items: [
+      {
+        name: "Settings",
+        icon: Settings,
+      },
+      {
+        name: "Help",
+        icon: HelpCircle,
+      },
+      {
+        name: "Legal",
+        icon: FileText,
+      },
+      {
+        name: "Cookie Settings",
+        icon: Cookie,
+      },
+    ],
   },
 ];
 
@@ -714,21 +764,27 @@ return (
         </div>
       </div>
 
-            <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
+                  <nav className="sidebar-nav">
+        {NAV_SECTIONS.map((section) => (
+          <div className="nav-section" key={section.title}>
+            <p className="nav-section-title">{section.title}</p>
 
-          return (
-            <button
-              key={item.name}
-              className={`nav-item ${activePage === item.name ? "active" : ""}`}
-              onClick={() => setActivePage(item.name)}
-            >
-              <Icon size={18} />
-              <span>{item.name}</span>
-            </button>
-          );
-        })}
+            {section.items.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <button
+                  key={item.name}
+                  className={`nav-item ${activePage === item.name ? "active" : ""}`}
+                  onClick={() => setActivePage(item.name)}
+                >
+                  <Icon size={18} />
+                  <span>{item.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="sidebar-footer">
@@ -1590,6 +1646,148 @@ return (
               </p>
             </div>
           </div>
+        </section>
+      )}
+
+      {activePage === "Calendar" && (
+  <section className="card">
+    <div className="card-header">
+      <div>
+        <h2>Economic Calendar</h2>
+        <p className="muted">
+          Upcoming macroeconomic events, earnings dates and market catalysts will appear here.
+        </p>
+      </div>
+    </div>
+
+    <p className="empty-state">
+      Calendar module coming next: economic releases, earnings calendar, IPO calendar and dividend events.
+    </p>
+  </section>
+)}
+
+      {activePage === "Leaderboard" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Leaderboard</h2>
+              <p className="muted">
+                Compare simulated portfolio performance by return, P&L and account value.
+              </p>
+            </div>
+          </div>
+
+          <p className="empty-state">
+            Leaderboard module coming soon. First version will use demo traders, then later user accounts.
+          </p>
+        </section>
+      )}
+
+      {activePage === "About" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>About Visio Trading</h2>
+              <p className="muted">
+                A full-stack paper trading simulator built with FastAPI, React, SQLite and live market data APIs.
+              </p>
+            </div>
+          </div>
+
+          <div className="education-grid">
+            <div className="metric">
+              <p className="label">Purpose</p>
+              <p className="muted">
+                Visio Trading helps users practise investing and portfolio management without risking real money.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Tech Stack</p>
+              <p className="muted">
+                FastAPI backend, React frontend, SQLite persistence, Recharts analytics and market data APIs.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Disclaimer</p>
+              <p className="muted">
+                This is a simulation project for education and portfolio demonstration. It is not financial advice.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "Help" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Help</h2>
+              <p className="muted">
+                Quick guide for using the simulator.
+              </p>
+            </div>
+          </div>
+
+          <div className="education-grid">
+            <div className="metric">
+              <p className="label">Search</p>
+              <p className="muted">
+                Use Markets to search by ticker or company name, then quote, trade or add to watchlist.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Trade</p>
+              <p className="muted">
+                Use the Trade page to submit simulated buy and sell market orders.
+              </p>
+            </div>
+
+            <div className="metric">
+              <p className="label">Analytics</p>
+              <p className="muted">
+                Use Analytics to review allocation, cash split and order activity.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activePage === "Legal" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Legal</h2>
+              <p className="muted">
+                Simulation disclaimer and data source notes.
+              </p>
+            </div>
+          </div>
+
+          <p className="empty-state">
+            Visio Trading is a paper trading simulator. It does not execute real trades, provide investment advice,
+            or guarantee market data accuracy. Market data is provided by third-party APIs for educational use.
+          </p>
+        </section>
+      )}
+
+      {activePage === "Cookie Settings" && (
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2>Cookie Settings</h2>
+              <p className="muted">
+                Local data and browser storage controls.
+              </p>
+            </div>
+          </div>
+
+          <p className="empty-state">
+            This local development version uses browser localStorage for watchlist data and interface preferences.
+            It does not use advertising or tracking cookies.
+          </p>
         </section>
       )}
 

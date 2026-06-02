@@ -68,7 +68,22 @@ body {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 18px;
+}
+
+.nav-section {
+  display: grid;
+  gap: 7px;
+}
+
+.nav-section-title {
+  margin: 0 0 4px;
+  padding: 0 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .nav-item {
@@ -944,7 +959,8 @@ td {
 
   .sidebar-nav {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 
   .topbar {
@@ -978,8 +994,9 @@ td {
 }
 
 @media (max-width: 640px) {
+  
   .sidebar-nav {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .account-strip,
