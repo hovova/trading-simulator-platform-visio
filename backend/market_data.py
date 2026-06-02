@@ -145,7 +145,7 @@ def fetch_stock_candles(symbol: str, chart_range: str = "1mo"):
         },
         "1w": {
             "yahoo_range": "5d",
-            "interval": "15m",
+            "interval": "1h",
             "label": "1W"
         },
         "1mo": {

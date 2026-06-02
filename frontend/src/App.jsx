@@ -318,10 +318,35 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
       count: response.data.count,
     });
 
-    const formattedData = (response.data.candles || []).map((item) => ({
-      timestamp: item.date * 1000,
-      close: item.close,
-    }));
+    const formattedData = (response.data.candles || []).map((item, index) => {
+      const dateObject = new Date(item.date * 1000);
+
+      return {
+        xIndex: index,
+        timestamp: item.date * 1000,
+        label:
+          selectedRange === "1d"
+            ? dateObject.toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : selectedRange === "1w"
+              ? dateObject.toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                })
+              : selectedRange === "1y" || selectedRange === "max"
+                ? dateObject.toLocaleDateString("en-GB", {
+                    month: "short",
+                    year: "2-digit",
+                  })
+                : dateObject.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                  }),
+        close: item.close,
+      };
+    });
 
     setPriceChartData(formattedData);
   } catch (error) {
@@ -1116,37 +1141,19 @@ return (
   ) : priceChartData.length > 0 ? (
     <ResponsiveContainer width="100%" height={280}>
   <LineChart
-    key={`${quote?.symbol}-${chartRange}`}
+    key={`${quote?.symbol}-${chartRange}-${priceChartData.length}`}
     data={priceChartData}
     margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
   >
     <CartesianGrid strokeDasharray="3 3" />
 
     <XAxis
-      dataKey="timestamp"
+      dataKey="xIndex"
       type="number"
       domain={["dataMin", "dataMax"]}
       tickFormatter={(value) => {
-        const dateObject = new Date(value);
-
-        if (chartRange === "1d" || chartRange === "1w") {
-          return dateObject.toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-        }
-
-        if (chartRange === "1y" || chartRange === "max") {
-          return dateObject.toLocaleDateString("en-GB", {
-            month: "short",
-            year: "2-digit",
-          });
-        }
-
-        return dateObject.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-        });
+        const item = priceChartData[Math.round(value)];
+        return item?.label || "";
       }}
     />
 
@@ -1154,9 +1161,11 @@ return (
 
     <Tooltip
       labelFormatter={(value) => {
-        const dateObject = new Date(value);
+        const item = priceChartData[Math.round(value)];
 
-        return dateObject.toLocaleString("en-GB", {
+        if (!item?.timestamp) return "";
+
+        return new Date(item.timestamp).toLocaleString("en-GB", {
           day: "2-digit",
           month: "short",
           year: "numeric",
