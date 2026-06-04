@@ -70,6 +70,214 @@ const CHART_RANGES = [
   },
 ];
 
+const EDUCATION_TERMS = [
+  {
+    category: "Trading Basics",
+    terms: [
+      {
+        title: "Paper Trading",
+        description:
+          "Simulated trading using market data without risking real money.",
+      },
+      {
+        title: "Market Order",
+        description:
+          "An order to buy or sell immediately at the best available current market price.",
+      },
+      {
+        title: "Limit Order",
+        description:
+          "An order to buy or sell only at a specified price or better.",
+      },
+      {
+        title: "Bid",
+        description:
+          "The highest price a buyer is currently willing to pay for a security.",
+      },
+      {
+        title: "Ask",
+        description:
+          "The lowest price a seller is currently willing to accept for a security.",
+      },
+      {
+        title: "Spread",
+        description:
+          "The difference between the bid price and the ask price.",
+      },
+      {
+        title: "Ticker",
+        description:
+          "A short symbol used to identify a listed security, such as AAPL or MSFT.",
+      },
+    ],
+  },
+  {
+    category: "Portfolio Metrics",
+    terms: [
+      {
+        title: "Portfolio Value",
+        description:
+          "The total value of cash plus the current market value of all holdings.",
+      },
+      {
+        title: "Cash Balance",
+        description:
+          "The amount of uninvested money available for new trades.",
+      },
+      {
+        title: "Cost Basis",
+        description:
+          "The average purchase price used to calculate profit or loss on a position.",
+      },
+      {
+        title: "Unrealised P&L",
+        description:
+          "Profit or loss on positions that are still open and have not been sold.",
+      },
+      {
+        title: "Realised P&L",
+        description:
+          "Profit or loss from positions that have already been closed or partially sold.",
+      },
+      {
+        title: "Return / RoR",
+        description:
+          "The percentage gain or loss relative to the amount invested.",
+      },
+      {
+        title: "Allocation",
+        description:
+          "How portfolio value is distributed across cash and different holdings.",
+      },
+      {
+        title: "Exposure",
+        description:
+          "The amount of portfolio value affected by a position, asset or sector.",
+      },
+    ],
+  },
+  {
+    category: "Valuation Metrics",
+    terms: [
+      {
+        title: "Market Cap",
+        description:
+          "The total market value of a company’s equity, calculated as share price times shares outstanding.",
+      },
+      {
+        title: "P/E Ratio",
+        description:
+          "Price-to-earnings ratio. It compares a company’s share price to earnings per share.",
+      },
+      {
+        title: "EPS",
+        description:
+          "Earnings per share. A company’s profit divided by the number of shares outstanding.",
+      },
+      {
+        title: "Dividend Yield",
+        description:
+          "Annual dividend income as a percentage of the current share price.",
+      },
+      {
+        title: "Enterprise Value",
+        description:
+          "A broader company valuation measure that includes equity value, debt and cash.",
+      },
+      {
+        title: "Revenue Growth",
+        description:
+          "The rate at which a company’s sales increase over time.",
+      },
+      {
+        title: "Profit Margin",
+        description:
+          "The percentage of revenue kept as profit after costs.",
+      },
+    ],
+  },
+  {
+    category: "Risk & Liquidity",
+    terms: [
+      {
+        title: "Beta",
+        description:
+          "A measure of how sensitive a stock is to movements in the broader market.",
+      },
+      {
+        title: "Volatility",
+        description:
+          "How much and how quickly a security’s price moves over time.",
+      },
+      {
+        title: "Liquidity",
+        description:
+          "How easily a security can be bought or sold without strongly affecting its price.",
+      },
+      {
+        title: "Volume",
+        description:
+          "The number of shares traded during a specific period.",
+      },
+      {
+        title: "Average Volume",
+        description:
+          "The average number of shares traded per day over a chosen period.",
+      },
+      {
+        title: "Drawdown",
+        description:
+          "The decline from a portfolio or asset’s peak value to its later low point.",
+      },
+      {
+        title: "Diversification",
+        description:
+          "Spreading investments across assets to reduce concentration risk.",
+      },
+    ],
+  },
+  {
+    category: "Market Data",
+    terms: [
+      {
+        title: "52-Week High",
+        description:
+          "The highest price a stock reached during the last 52 weeks.",
+      },
+      {
+        title: "52-Week Low",
+        description:
+          "The lowest price a stock reached during the last 52 weeks.",
+      },
+      {
+        title: "YTD Return",
+        description:
+          "Year-to-date return. The performance from the start of the year to today.",
+      },
+      {
+        title: "Open Price",
+        description:
+          "The first traded price of the security during the current trading session.",
+      },
+      {
+        title: "High Price",
+        description:
+          "The highest traded price during the selected trading period.",
+      },
+      {
+        title: "Low Price",
+        description:
+          "The lowest traded price during the selected trading period.",
+      },
+      {
+        title: "Previous Close",
+        description:
+          "The last traded price from the previous trading session.",
+      },
+    ],
+  },
+];
+
 const NAV_SECTIONS = [
   {
     title: "Trade",
@@ -215,6 +423,15 @@ function getErrorMessage(error, fallback) {
   }
 
   return fallback;
+}
+
+function InfoTooltip({ text }) {
+  return (
+    <span className="info-tooltip" tabIndex="0">
+      ⓘ
+      <span className="tooltip-content">{text}</span>
+    </span>
+  );
 }
 
 function App() {
@@ -952,21 +1169,30 @@ return (
                 </div>
 
                 <div className="metric">
-                  <p className="label">Portfolio Value</p>
+                  <p className="label">
+                    Portfolio Value{" "}
+                    <InfoTooltip text="Cash plus the current market value of all open simulated positions." />
+                  </p>
                   <p className="value">
                     {formatMoney(portfolio.summary?.total_portfolio_value)}
                   </p>
                 </div>
 
                 <div className="metric">
-                  <p className="label">Unrealised P&L</p>
+                  <p className="label">
+                    Unrealised P&L{" "}
+                    <InfoTooltip text="Profit or loss on positions you still hold." />
+                  </p>
                   <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
                     {formatMoney(portfolio.summary?.total_unrealised_pnl)}
                   </p>
                 </div>
 
                 <div className="metric">
-                  <p className="label">Realised P&L</p>
+                  <p className="label">
+                    Realised P&L{" "}
+                    <InfoTooltip text="Profit or loss from trades that have already been closed." />
+                  </p>
                   <p className={`value ${getPnLClass(portfolio.summary?.total_realised_pnl)}`}>
                     {formatMoney(portfolio.summary?.total_realised_pnl)}
                   </p>
@@ -980,7 +1206,10 @@ return (
                 </div>
 
                 <div className="metric">
-                  <p className="label">Return</p>
+                  <p className="label">
+                    Return{" "}
+                    <InfoTooltip text="Percentage return based on the simulated portfolio's unrealised performance." />
+                  </p>
                   <p className={`value ${getPnLClass(portfolio.summary?.total_unrealised_pnl)}`}>
                     {formatPercent(portfolio.summary?.total_unrealised_return_percent)}
                   </p>
@@ -1369,7 +1598,10 @@ return (
           </div>
 
           <div className="ticket-field">
-            <label>Order Type</label>
+            <label>
+              Order Type{" "}
+              <InfoTooltip text="This simulator currently uses market orders, which execute at the current available market price." />
+            </label>
             <div className="order-type-pill">Market Order</div>
           </div>
 
@@ -1385,13 +1617,17 @@ return (
 
           <div className="ticket-estimates">
             <div>
-              <span>Estimated Price</span>
+              <span>
+                Estimated Price{" "}
+                <InfoTooltip text="The latest available quote used to estimate the simulated order value." />
+              </span>
               <strong>{formatMoney(estimatedPrice)}</strong>
             </div>
 
             <div>
               <span>
-                {tradeSide === "BUY" ? "Estimated Cost" : "Estimated Proceeds"}
+                {tradeSide === "BUY" ? "Estimated Cost" : "Estimated Proceeds"}{" "}
+                <InfoTooltip text="Estimated total order value based on price multiplied by quantity." />
               </span>
               <strong>{formatMoney(estimatedOrderValue)}</strong>
             </div>
@@ -1747,39 +1983,38 @@ return (
   </section>
 )}
 
-      {activePage === "Education" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Education</h2>
-              <p className="muted">Explain the trading simulator logic and finance metrics.</p>
+        {activePage === "Education" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Education</h2>
+          <p className="muted">
+            Learn the key trading, portfolio, valuation and market data terms used across Visio.
+          </p>
+        </div>
+      </div>
+
+      <div className="education-sections">
+        {EDUCATION_TERMS.map((section) => (
+          <div className="education-section" key={section.category}>
+            <div className="education-section-header">
+              <h3>{section.category}</h3>
+              <span>{section.terms.length} terms</span>
+            </div>
+
+            <div className="education-grid">
+              {section.terms.map((term) => (
+                <div className="metric education-card" key={term.title}>
+                  <p className="label">{term.title}</p>
+                  <p className="muted">{term.description}</p>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="education-grid">
-            <div className="metric">
-              <p className="label">Unrealised P&L</p>
-              <p className="muted">
-                Profit or loss on positions you still hold.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Realised P&L</p>
-              <p className="muted">
-                Profit or loss from positions you have already sold.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Paper Trading</p>
-              <p className="muted">
-                Simulated trading using market prices but without real money.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
+        ))}
+      </div>
+    </section>
+  )}
 
       {activePage === "Calendar" && (
   <section className="card">
@@ -1997,28 +2232,40 @@ return (
 
         <div className="summary-grid company-metrics-grid">
           <div className="metric" title="Market capitalisation is the total market value of the company's equity.">
-            <p className="label">Market Cap</p>
+            <p className="label">
+              Market Cap{" "}
+              <InfoTooltip text="Total market value of the company’s equity." />
+            </p>
             <p className="value">
               ${formatLargeNumber(selectedCompany.profile?.marketCapitalization)}
             </p>
           </div>
 
           <div className="metric" title="P/E ratio compares a company’s share price to its earnings per share.">
-            <p className="label">P/E Ratio</p>
+            <p className="label">
+              P/E Ratio{" "}
+              <InfoTooltip text="Price-to-earnings ratio. Shows how much investors pay for each dollar of earnings." />
+            </p>
             <p className="value">
               {formatMetric(selectedCompany.metrics?.peBasicExclExtraTTM)}
             </p>
           </div>
 
           <div className="metric" title="Dividend yield is annual dividend income as a percentage of the share price.">
-            <p className="label">Dividend Yield</p>
+            <p className="label">
+              Dividend Yield{" "}
+              <InfoTooltip text="Annual dividend income as a percentage of the share price." />
+            </p>
             <p className="value">
               {formatMetric(selectedCompany.metrics?.dividendYieldIndicatedAnnual, "%")}
             </p>
           </div>
 
           <div className="metric" title="Beta measures how sensitive the stock is to market movements.">
-            <p className="label">Beta</p>
+            <p className="label">
+              Beta{" "}
+              <InfoTooltip text="Measures how sensitive the stock is to movements in the wider market." />
+            </p>
             <p className="value">{formatMetric(selectedCompany.metrics?.beta)}</p>
           </div>
 
@@ -2037,14 +2284,20 @@ return (
           </div>
 
           <div className="metric" title="Average trading volume helps assess liquidity.">
-            <p className="label">10D Avg Volume</p>
+            <p className="label">
+              10D Avg Volume{" "}
+              <InfoTooltip text="Average daily trading volume over the last 10 trading days." />
+            </p>
             <p className="value">
               {formatLargeNumber(selectedCompany.metrics?.["10DayAverageTradingVolume"])}
             </p>
           </div>
 
           <div className="metric" title="EPS is earnings per share over the trailing twelve months.">
-            <p className="label">EPS TTM</p>
+            <p className="label">
+              EPS TTM{" "}
+              <InfoTooltip text="Trailing twelve-month earnings per share." />
+            </p>
             <p className="value">
               {formatMetric(selectedCompany.metrics?.epsBasicExclExtraItemsTTM)}
             </p>
