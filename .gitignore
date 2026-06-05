@@ -222,3 +222,7 @@ backend/.env
 backend/venv/
 backend/__pycache__/
 *.db
+
+# Local database files
+*.db
+backend/*.db
