@@ -452,11 +452,22 @@ function App() {
   const [tradeLoading, setTradeLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [tradeFilter, setTradeFilter] = useState("");
+  const [tradeNotes, setTradeNotes] = useState(() => {
+    const savedNotes = localStorage.getItem("visio-trade-notes");
+
+    if (savedNotes) {
+      return JSON.parse(savedNotes);
+    }
+
+    return {};
+  });
   const [activePage, setActivePage] = useState("Dashboard");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
 
   const [watchlist, setWatchlist] = useState(() => {
     const savedWatchlist = localStorage.getItem("visio-watchlist");
@@ -533,6 +544,47 @@ const worstHolding =
       )
     : null;
 
+const mostOwnedHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((largest, current) =>
+        current.quantity > largest.quantity ? current : largest
+      )
+    : null;
+
+const largestHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((largest, current) =>
+        current.market_value > largest.market_value ? current : largest
+      )
+    : null;
+
+const bestReturnHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((best, current) =>
+        current.unrealised_return_percent > best.unrealised_return_percent
+          ? current
+          : best
+      )
+    : null;
+
+const worstReturnHolding =
+  holdingsArray.length > 0
+    ? holdingsArray.reduce((worst, current) =>
+        current.unrealised_return_percent < worst.unrealised_return_percent
+          ? current
+          : worst
+      )
+    : null;
+
+const portfolioValue = portfolio?.summary?.total_portfolio_value || 0;
+const cashAllocationPercent =
+  portfolioValue > 0 ? ((portfolio?.cash || 0) / portfolioValue) * 100 : 0;
+
+const investedAllocationPercent =
+  portfolioValue > 0
+    ? ((portfolio?.summary?.total_market_value || 0) / portfolioValue) * 100
+    : 0;
+
 const totalTrades = portfolio?.trades?.length || 0;
 const totalHoldings = holdingsArray.length;
 
@@ -604,13 +656,6 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
     const response = await axios.get(
       `${API_BASE_URL}/candles/${tickerSymbol.toUpperCase()}?range=${selectedRange}&t=${Date.now()}`
     );
-
-    console.log("Chart response:", {
-      symbol: response.data.symbol,
-      range: response.data.range,
-      interval: response.data.interval,
-      count: response.data.count,
-    });
 
     const formattedData = (response.data.candles || []).map((item, index) => {
       const dateObject = new Date(item.date * 1000);
@@ -749,6 +794,31 @@ const hasEnoughShares = ownedQuantity >= estimatedQuantity;
     });
   } finally {
     setSearchLoading(false);
+  }
+}
+
+async function fetchSearchSuggestions(query) {
+  if (!query.trim() || query.trim().length < 2) {
+    setSearchSuggestions([]);
+    return;
+  }
+
+  try {
+    setSuggestionsLoading(true);
+
+    const response = await axios.get(`${API_BASE_URL}/search/${query.trim()}`);
+    const results = response.data.results || [];
+
+    setSearchSuggestions(results.slice(0, 6));
+
+    results.slice(0, 6).forEach((result) => {
+      fetchCompanyLogo(result.symbol);
+    });
+  } catch (error) {
+    console.error("Error fetching search suggestions:", error);
+    setSearchSuggestions([]);
+  } finally {
+    setSuggestionsLoading(false);
   }
 }
 
@@ -967,6 +1037,18 @@ function formatNewsDate(timestamp) {
 }, [watchlist]);
 
 useEffect(() => {
+  localStorage.setItem("visio-trade-notes", JSON.stringify(tradeNotes));
+}, [tradeNotes]);
+
+useEffect(() => {
+  const debounce = setTimeout(() => {
+    fetchSearchSuggestions(searchQuery);
+  }, 400);
+
+  return () => clearTimeout(debounce);
+}, [searchQuery]);
+
+useEffect(() => {
   const interval = setInterval(() => {
     fetchMarketNews();
   }, 600000);
@@ -1041,6 +1123,90 @@ function removeFromWatchlist(symbol) {
     type: "success",
     text: `${symbol} removed from watchlist.`,
   });
+}
+
+function getTradeKey(trade, index) {
+  return `${trade.timestamp}-${trade.symbol}-${trade.type}-${index}`;
+}
+
+function updateTradeNote(tradeKey, note) {
+  setTradeNotes((currentNotes) => ({
+    ...currentNotes,
+    [tradeKey]: note,
+  }));
+}
+
+function downloadCsv(filename, rows) {
+  if (!rows || rows.length === 0) {
+    setMessage({
+      type: "error",
+      text: "No data available to export.",
+    });
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header] ?? "";
+          return `"${String(value).replaceAll('"', '""')}"`;
+        })
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function exportTradeHistoryCsv() {
+  const rows =
+    portfolio?.trades?.map((trade, index) => {
+      const tradeKey = getTradeKey(trade, index);
+
+      return {
+        type: trade.type,
+        symbol: trade.symbol,
+        quantity: trade.quantity,
+        price: trade.price,
+        total: trade.total,
+        realised_pnl: trade.realised_pnl,
+        timestamp: trade.timestamp,
+        journal_note: tradeNotes[tradeKey] || "",
+      };
+    }) || [];
+
+  downloadCsv("visio-trade-journal.csv", rows);
+}
+
+function exportPortfolioCsv() {
+  const rows = Object.entries(portfolio?.holdings || {}).map(
+    ([symbol, holding]) => ({
+      symbol,
+      quantity: holding.quantity,
+      average_price: holding.average_price,
+      current_price: holding.current_price,
+      market_value: holding.market_value,
+      unrealised_pnl: holding.unrealised_pnl,
+      unrealised_return_percent: holding.unrealised_return_percent,
+    })
+  );
+
+  downloadCsv("visio-portfolio-summary.csv", rows);
 }
 
 function getDailyChange(quoteData) {
@@ -1251,6 +1417,52 @@ return (
                 <p className={`value ${getPnLClass(worstHolding?.unrealised_pnl)}`}>
                   {worstHolding ? `${worstHolding.symbol} ${formatMoney(worstHolding.unrealised_pnl)}` : "N/A"}
                 </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Most Owned</p>
+                <p className="value">
+                  {mostOwnedHolding
+                    ? `${mostOwnedHolding.symbol} × ${mostOwnedHolding.quantity}`
+                    : "N/A"}
+                </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Largest Holding</p>
+                <p className="value">
+                  {largestHolding
+                    ? `${largestHolding.symbol} ${formatMoney(largestHolding.market_value)}`
+                    : "N/A"}
+                </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Best Return %</p>
+                <p className={`value ${getPnLClass(bestReturnHolding?.unrealised_return_percent)}`}>
+                  {bestReturnHolding
+                    ? `${bestReturnHolding.symbol} ${formatPercent(bestReturnHolding.unrealised_return_percent)}`
+                    : "N/A"}
+                </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Worst Return %</p>
+                <p className={`value ${getPnLClass(worstReturnHolding?.unrealised_return_percent)}`}>
+                  {worstReturnHolding
+                    ? `${worstReturnHolding.symbol} ${formatPercent(worstReturnHolding.unrealised_return_percent)}`
+                    : "N/A"}
+                </p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Cash Allocation</p>
+                <p className="value">{cashAllocationPercent.toFixed(1)}%</p>
+              </div>
+
+              <div className="metric">
+                <p className="label">Invested Allocation</p>
+                <p className="value">{investedAllocationPercent.toFixed(1)}%</p>
               </div>
             </div>
           </section>
@@ -1737,16 +1949,34 @@ return (
         <section className="card">
           <div className="card-header">
             <div>
-              <h2>Orders / Trade Log</h2>
-              <p className="muted">Latest simulated orders stored in SQLite.</p>
+              <h2>Orders / Trading Journal</h2>
+              <p className="muted">
+                Latest simulated orders, journal notes and CSV exports.
+              </p>
             </div>
 
-            <input
-              className="filter-input"
-              value={tradeFilter}
-              onChange={(event) => setTradeFilter(event.target.value.toUpperCase())}
-              placeholder="Filter by ticker"
-            />
+            <div className="header-actions journal-actions">
+              <button
+                className="secondary-button compact-button"
+                onClick={exportTradeHistoryCsv}
+              >
+                Export Trades CSV
+              </button>
+
+              <button
+                className="secondary-button compact-button"
+                onClick={exportPortfolioCsv}
+              >
+                Export Portfolio CSV
+              </button>
+
+              <input
+                className="filter-input"
+                value={tradeFilter}
+                onChange={(event) => setTradeFilter(event.target.value.toUpperCase())}
+                placeholder="Filter by ticker"
+              />
+            </div>
           </div>
 
           {portfolio && filteredTrades.length > 0 ? (
@@ -1761,27 +1991,46 @@ return (
                     <th>Total</th>
                     <th>Realised P&L</th>
                     <th>Time</th>
+                    <th>Journal Note</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {filteredTrades.slice(0, 12).map((trade, index) => (
-                    <tr key={index}>
-                      <td>
-                        <span className={`trade-badge ${trade.type.toLowerCase()}`}>
-                          {trade.type}
-                        </span>
-                      </td>
-                      <td>{trade.symbol}</td>
-                      <td>{trade.quantity}</td>
-                      <td>{formatMoney(trade.price)}</td>
-                      <td>{formatMoney(trade.total)}</td>
-                      <td className={getPnLClass(trade.realised_pnl)}>
-                        {formatMoney(trade.realised_pnl)}
-                      </td>
-                      <td>{new Date(trade.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))}
+                  {filteredTrades.slice(0, 12).map((trade, index) => {
+                    const tradeKey = getTradeKey(trade, index);
+
+                    return (
+                      <tr key={tradeKey}>
+                        <td>
+                          <span className={`trade-badge ${trade.type.toLowerCase()}`}>
+                            {trade.type}
+                          </span>
+                        </td>
+
+                        <td>{trade.symbol}</td>
+                        <td>{trade.quantity}</td>
+                        <td>{formatMoney(trade.price)}</td>
+                        <td>{formatMoney(trade.total)}</td>
+
+                        <td className={getPnLClass(trade.realised_pnl)}>
+                          {formatMoney(trade.realised_pnl)}
+                        </td>
+
+                        <td>{new Date(trade.timestamp).toLocaleString()}</td>
+
+                        <td>
+                          <input
+                            className="journal-note-input"
+                            value={tradeNotes[tradeKey] || ""}
+                            onChange={(event) =>
+                              updateTradeNote(tradeKey, event.target.value)
+                            }
+                            placeholder="Add trade note..."
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1803,11 +2052,50 @@ return (
       </div>
 
       <div className="market-search">
-        <input
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Search company or ticker, e.g. Apple, Microsoft, TSLA"
-        />
+        <div className="search-autocomplete">
+          <input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search company or ticker, e.g. Apple, Microsoft, TSLA"
+          />
+
+          {searchSuggestions.length > 0 && (
+            <div className="suggestions-dropdown">
+              {searchSuggestions.map((suggestion, index) => (
+                <button
+                  key={`${suggestion.symbol}-${index}`}
+                  className="suggestion-item"
+                  onClick={() => {
+                    setSearchQuery(suggestion.description || suggestion.symbol);
+                    setSearchSuggestions([]);
+                    fetchCompanyDetails(suggestion.symbol);
+                  }}
+                >
+                  {companyLogos[suggestion.symbol] ? (
+                    <img
+                      src={companyLogos[suggestion.symbol]}
+                      alt={suggestion.description || suggestion.symbol}
+                      className="mini-company-logo"
+                    />
+                  ) : (
+                    <span className="mini-company-logo logo-placeholder">
+                      {suggestion.symbol?.slice(0, 1)}
+                    </span>
+                  )}
+
+                  <span>
+                    <strong>{suggestion.symbol}</strong>
+                    <small>{suggestion.description || "N/A"}</small>
+                  </span>
+                </button>
+              ))}
+
+              {suggestionsLoading && (
+                <p className="suggestions-loading">Loading suggestions...</p>
+              )}
+            </div>
+          )}
+        </div>
 
         <button className="market-search-button" onClick={searchStocks}>
           {searchLoading ? "Searching..." : "Search"}

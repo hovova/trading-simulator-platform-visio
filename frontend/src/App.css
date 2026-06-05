@@ -1108,6 +1108,77 @@ td {
   transform: translateX(-50%) translateY(-2px);
 }
 
+/* Add these before your media queries in frontend/src/App.css */
+.journal-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.journal-note-input {
+  min-width: 260px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.search-autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 16px;
+  background: #020617;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.4);
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.suggestion-item:hover {
+  transform: none;
+  background: rgba(30, 41, 59, 0.86);
+}
+
+.suggestion-item span {
+  display: grid;
+  gap: 3px;
+}
+
+.suggestion-item strong {
+  color: #f8fafc;
+}
+
+.suggestion-item small {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.suggestions-loading {
+  margin: 0;
+  padding: 8px 10px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+
 @media (max-width: 640px) {
   .ticket-estimates {
     grid-template-columns: 1fr;
