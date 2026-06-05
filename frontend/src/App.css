@@ -1108,7 +1108,6 @@ td {
   transform: translateX(-50%) translateY(-2px);
 }
 
-/* Add these before your media queries in frontend/src/App.css */
 .journal-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -1216,6 +1215,83 @@ td {
   border: 1px solid rgba(34, 197, 94, 0.28);
 }
 
+.settings-grid,
+.about-grid,
+.help-steps,
+.legal-content {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.setting-card {
+  display: grid;
+  gap: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #cbd5e1;
+  font-weight: 800;
+}
+
+.setting-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #38bdf8;
+}
+
+.setting-column {
+  display: grid;
+  gap: 8px;
+  color: #cbd5e1;
+  font-weight: 800;
+}
+
+.setting-column select {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(2, 6, 23, 0.86);
+  color: #f8fafc;
+  font-size: 15px;
+  outline: none;
+}
+
+.vertical-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-mode .hero {
+  padding-top: 16px;
+  padding-bottom: 12px;
+}
+
+.compact-mode .hero-card {
+  padding: 20px;
+}
+
+.compact-mode .hero-card h1 {
+  font-size: clamp(32px, 4vw, 52px);
+}
+
+.compact-mode .dashboard {
+  gap: 16px;
+}
+
+.compact-mode .card {
+  padding: 20px;
+}
+
+.compact-mode th,
+.compact-mode td {
+  padding: 11px 10px;
+}
 
 @media (max-width: 640px) {
   .ticket-estimates {
@@ -1236,11 +1312,17 @@ td {
     font-size: 22px;
   }
 
-  .tooltip-content {
-  left: 0;
-  transform: none;
-  width: 220px;
-}
+    .tooltip-content {
+    left: 0;
+    transform: none;
+    width: 220px;
+  }
+  .settings-grid,
+  .about-grid,
+  .help-steps,
+  .legal-content {
+    grid-template-columns: 1fr;
+  }
 
   .info-tooltip:hover .tooltip-content,
   .info-tooltip:focus .tooltip-content {

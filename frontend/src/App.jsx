@@ -594,6 +594,21 @@ function App() {
   const [newsLoading, setNewsLoading] = useState(false);
   const [newsIndex, setNewsIndex] = useState(0);
 
+  const [showHero, setShowHero] = useState(() => {
+  const savedValue = localStorage.getItem("visio-show-hero");
+    return savedValue ? JSON.parse(savedValue) : true;
+  });
+
+  const [compactMode, setCompactMode] = useState(() => {
+    const savedValue = localStorage.getItem("visio-compact-mode");
+    return savedValue ? JSON.parse(savedValue) : false;
+  });
+
+  const [newsCarouselSpeed, setNewsCarouselSpeed] = useState(() => {
+    const savedValue = localStorage.getItem("visio-news-speed");
+    return savedValue ? Number(savedValue) : 6000;
+  });
+
 
   const filteredTrades =
     portfolio?.trades?.filter((trade) =>
@@ -1124,6 +1139,112 @@ async function fetchCompanyLogo(tickerSymbol) {
   }
 }
 
+async function loadDemoPortfolio() {
+  const confirmed = window.confirm(
+    "Load demo portfolio? This will reset your current portfolio, then create sample trades and watchlist items."
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setMessage(null);
+    setTradeLoading(true);
+
+    await axios.post(`${API_BASE_URL}/reset`);
+
+    const demoTrades = [
+      { symbol: "AAPL", quantity: 8 },
+      { symbol: "MSFT", quantity: 5 },
+      { symbol: "NVDA", quantity: 3 },
+      { symbol: "KO", quantity: 12 },
+    ];
+
+    for (const trade of demoTrades) {
+      await axios.post(`${API_BASE_URL}/buy`, trade);
+    }
+
+    const demoWatchlist = [
+      {
+        symbol: "AAPL",
+        description: "APPLE INC",
+        type: "Common Stock",
+      },
+      {
+        symbol: "MSFT",
+        description: "MICROSOFT CORP",
+        type: "Common Stock",
+      },
+      {
+        symbol: "NVDA",
+        description: "NVIDIA CORP",
+        type: "Common Stock",
+      },
+      {
+        symbol: "TSLA",
+        description: "TESLA INC",
+        type: "Common Stock",
+      },
+      {
+        symbol: "KO",
+        description: "COCA-COLA CO",
+        type: "Common Stock",
+      },
+    ];
+
+    setWatchlist(demoWatchlist);
+
+    demoWatchlist.forEach((item) => {
+      fetchCompanyLogo(item.symbol);
+    });
+
+    await fetchPortfolio();
+    await fetchWatchlistQuotes();
+
+    setMessage({
+      type: "success",
+      text: "Demo portfolio loaded successfully.",
+    });
+
+    setActivePage("Dashboard");
+  } catch (error) {
+    console.error("Error loading demo portfolio:", error);
+    setMessage({
+      type: "error",
+      text: getErrorMessage(
+        error,
+        "Could not load demo portfolio. Check backend and API limits."
+      ),
+    });
+  } finally {
+    setTradeLoading(false);
+  }
+}
+
+function resetLocalBrowserData() {
+  const confirmed = window.confirm(
+    "Clear local browser data? This removes watchlist, journal notes and UI preferences stored in localStorage."
+  );
+
+  if (!confirmed) return;
+
+  localStorage.removeItem("visio-watchlist");
+  localStorage.removeItem("visio-trade-notes");
+  localStorage.removeItem("visio-show-hero");
+  localStorage.removeItem("visio-compact-mode");
+  localStorage.removeItem("visio-news-speed");
+
+  setWatchlist([]);
+  setTradeNotes({});
+  setShowHero(true);
+  setCompactMode(false);
+  setNewsCarouselSpeed(6000);
+
+  setMessage({
+    type: "success",
+    text: "Local browser data cleared.",
+  });
+}
+
 function goToNextNews() {
   if (marketNews.length === 0) return;
 
@@ -1200,10 +1321,10 @@ useEffect(() => {
     setNewsIndex((currentIndex) =>
       currentIndex === marketNews.length - 1 ? 0 : currentIndex + 1
     );
-  }, 6000);
+  }, newsCarouselSpeed);
 
   return () => clearInterval(carouselInterval);
-}, [marketNews.length]);
+}, [marketNews.length, newsCarouselSpeed]);
 
 useEffect(() => {
   fetchWatchlistQuotes();
@@ -1216,6 +1337,18 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, [watchlist]);
+
+useEffect(() => {
+  localStorage.setItem("visio-show-hero", JSON.stringify(showHero));
+}, [showHero]);
+
+useEffect(() => {
+  localStorage.setItem("visio-compact-mode", JSON.stringify(compactMode));
+}, [compactMode]);
+
+useEffect(() => {
+  localStorage.setItem("visio-news-speed", String(newsCarouselSpeed));
+}, [newsCarouselSpeed]);
 
 function addToWatchlist(result) {
   const symbol = result.symbol;
@@ -1353,7 +1486,7 @@ function getDailyChangePercent(quoteData) {
 }
 
 return (
-  <div className="app-shell">
+  <div className={`app-shell ${compactMode ? "compact-mode" : ""}`}>
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div className="logo-mark">V</div>
@@ -1424,16 +1557,18 @@ return (
         </div>
       </header>
 
-      <header className="hero">
-        <div className="hero-card">
-          <p className="eyebrow">Visio Trading</p>
-          <h1>Trading Simulator Platform</h1>
-          <p className="subtitle">
-            A paper trading dashboard for simulated stock positions, portfolio
-            value, trade history and realised/unrealised performance.
-          </p>
-        </div>
-      </header>
+            {showHero && (
+        <header className="hero">
+          <div className="hero-card">
+            <p className="eyebrow">Visio Trading</p>
+            <h1>Trading Simulator Platform</h1>
+            <p className="subtitle">
+              A paper trading dashboard for simulated stock positions, portfolio
+              value, trade history and realised/unrealised performance.
+            </p>
+          </div>
+        </header>
+      )}
 
           <main className="dashboard">
       {message && <div className={`alert ${message.type}`}>{message.text}</div>}
@@ -2586,113 +2721,212 @@ return (
         </section>
       )}
 
-      {activePage === "About" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>About Visio Trading</h2>
-              <p className="muted">
-                A full-stack paper trading simulator built with FastAPI, React, SQLite and live market data APIs.
-              </p>
-            </div>
-          </div>
-
-          <div className="education-grid">
-            <div className="metric">
-              <p className="label">Purpose</p>
-              <p className="muted">
-                Visio Trading helps users practise investing and portfolio management without risking real money.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Tech Stack</p>
-              <p className="muted">
-                FastAPI backend, React frontend, SQLite persistence, Recharts analytics and market data APIs.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Disclaimer</p>
-              <p className="muted">
-                This is a simulation project for education and portfolio demonstration. It is not financial advice.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {activePage === "Help" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Help</h2>
-              <p className="muted">
-                Quick guide for using the simulator.
-              </p>
-            </div>
-          </div>
-
-          <div className="education-grid">
-            <div className="metric">
-              <p className="label">Search</p>
-              <p className="muted">
-                Use Markets to search by ticker or company name, then quote, trade or add to watchlist.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Trade</p>
-              <p className="muted">
-                Use the Trade page to submit simulated buy and sell market orders.
-              </p>
-            </div>
-
-            <div className="metric">
-              <p className="label">Analytics</p>
-              <p className="muted">
-                Use Analytics to review allocation, cash split and order activity.
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {activePage === "Legal" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Legal</h2>
-              <p className="muted">
-                Simulation disclaimer and data source notes.
-              </p>
-            </div>
-          </div>
-
-          <p className="empty-state">
-            Visio Trading is a paper trading simulator. It does not execute real trades, provide investment advice,
-            or guarantee market data accuracy. Market data is provided by third-party APIs for educational use.
+        {activePage === "About" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>About Visio Trading</h2>
+          <p className="muted">
+            A full-stack paper trading simulator built as a finance and software engineering portfolio project.
           </p>
-        </section>
-      )}
+        </div>
+      </div>
 
-      {activePage === "Cookie Settings" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Cookie Settings</h2>
-              <p className="muted">
-                Local data and browser storage controls.
-              </p>
-            </div>
-          </div>
-
-          <p className="empty-state">
-            This local development version uses browser localStorage for watchlist data and interface preferences.
-            It does not use advertising or tracking cookies.
+      <div className="about-grid">
+        <div className="metric">
+          <p className="label">Purpose</p>
+          <p className="muted">
+            Visio Trading helps users practise simulated investing, understand portfolio performance,
+            explore company fundamentals and learn market terminology without risking real money.
           </p>
-        </section>
-      )}
+        </div>
+
+        <div className="metric">
+          <p className="label">Core Features</p>
+          <p className="muted">
+            Paper trading, portfolio holdings, watchlist, market search, company profiles,
+            price charts, trade journal, CSV exports, news, education, calendar and leaderboard.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Tech Stack</p>
+          <p className="muted">
+            React, Vite, Recharts, FastAPI, SQLite, Python, Finnhub market data and Yahoo Finance chart fallback.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Data Sources</p>
+          <p className="muted">
+            Quotes, company data and news are fetched from market data APIs. Historical chart data uses a fallback source
+            where needed to keep charts available during development.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Project Scope</p>
+          <p className="muted">
+            This is a local development portfolio project, not a live brokerage platform. It does not execute real orders.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Disclaimer</p>
+          <p className="muted">
+            The simulator is for educational demonstration only. Nothing in the app is financial advice.
+          </p>
+        </div>
+      </div>
+    </section>
+  )}
+
+        {activePage === "Help" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Help</h2>
+          <p className="muted">
+            Quick guide for navigating the simulator.
+          </p>
+        </div>
+      </div>
+
+      <div className="help-steps">
+        <div className="metric">
+          <p className="label">1. Search markets</p>
+          <p className="muted">
+            Use Markets to search by ticker or company name. Autocomplete suggestions can open the company details page.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">2. Research a company</p>
+          <p className="muted">
+            Click a company name or logo to view profile information, valuation metrics, risk indicators and liquidity notes.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">3. Place simulated trades</p>
+          <p className="muted">
+            Use the Trade page to submit buy or sell market orders. Orders affect only the local simulated portfolio.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">4. Review holdings</p>
+          <p className="muted">
+            Use Portfolio to see all owned stocks, current values, P&L, returns and quick actions.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">5. Use the journal</p>
+          <p className="muted">
+            Use Orders / Trading Journal to write notes for trades and export trade or portfolio data as CSV files.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">6. Explore analytics</p>
+          <p className="muted">
+            Use Analytics, Leaderboard and Calendar for portfolio visualisation and demo market context.
+          </p>
+        </div>
+      </div>
+    </section>
+  )}
+
+        {activePage === "Legal" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Legal</h2>
+          <p className="muted">
+            Simulation disclaimer and data-source notes.
+          </p>
+        </div>
+      </div>
+
+      <div className="legal-content">
+        <div className="metric">
+          <p className="label">Paper trading only</p>
+          <p className="muted">
+            Visio Trading is a simulation. It does not connect to a broker, execute real trades or manage real money.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Not financial advice</p>
+          <p className="muted">
+            Information in this app is educational and demonstrational only. Users should not treat it as investment advice.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Market data</p>
+          <p className="muted">
+            Market data may be delayed, incomplete or unavailable depending on third-party API limits and development setup.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Local project</p>
+          <p className="muted">
+            This project is designed for local development, learning and GitHub portfolio presentation.
+          </p>
+        </div>
+      </div>
+    </section>
+  )}
+
+        {activePage === "Cookie Settings" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Cookie Settings</h2>
+          <p className="muted">
+            Local browser storage and privacy controls.
+          </p>
+        </div>
+      </div>
+
+      <div className="legal-content">
+        <div className="metric">
+          <p className="label">Cookies</p>
+          <p className="muted">
+            This local development version does not use advertising or tracking cookies.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">LocalStorage</p>
+          <p className="muted">
+            The app stores watchlist items, trade journal notes and UI preferences in your browser localStorage.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Stored items</p>
+          <p className="muted">
+            visio-watchlist, visio-trade-notes, visio-show-hero, visio-compact-mode and visio-news-speed.
+          </p>
+        </div>
+
+        <div className="metric">
+          <p className="label">Clear data</p>
+          <p className="muted">
+            You can clear local browser data here without affecting the backend SQLite portfolio database.
+          </p>
+
+          <button className="danger-button" onClick={resetLocalBrowserData}>
+            Clear Local Browser Data
+          </button>
+        </div>
+      </div>
+    </section>
+  )}
 
       {activePage === "Company" && (
   <section className="card">
@@ -2871,26 +3105,103 @@ return (
   </section>
 )}
 
-      {activePage === "Settings" && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2>Settings</h2>
-              <p className="muted">Portfolio controls and local development tools.</p>
-            </div>
-          </div>
+        {activePage === "Settings" && (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          <h2>Settings</h2>
+          <p className="muted">
+            Customise the local simulator interface and demo data.
+          </p>
+        </div>
+      </div>
 
-          <div className="settings-actions">
+      <div className="settings-grid">
+        <div className="metric setting-card">
+          <p className="label">Display</p>
+
+          <label className="setting-row">
+            <span>Show hero banner</span>
+            <input
+              type="checkbox"
+              checked={showHero}
+              onChange={(event) => setShowHero(event.target.checked)}
+            />
+          </label>
+
+          <label className="setting-row">
+            <span>Compact mode</span>
+            <input
+              type="checkbox"
+              checked={compactMode}
+              onChange={(event) => setCompactMode(event.target.checked)}
+            />
+          </label>
+        </div>
+
+        <div className="metric setting-card">
+          <p className="label">Defaults</p>
+
+          <label className="setting-column">
+            <span>Default chart range</span>
+            <select
+              value={chartRange}
+              onChange={(event) => changeChartRange(event.target.value)}
+            >
+              {CHART_RANGES.map((rangeOption) => (
+                <option key={rangeOption.value} value={rangeOption.value}>
+                  {rangeOption.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="setting-column">
+            <span>News carousel speed</span>
+            <select
+              value={newsCarouselSpeed}
+              onChange={(event) => setNewsCarouselSpeed(Number(event.target.value))}
+            >
+              <option value={4000}>Fast — 4 seconds</option>
+              <option value={6000}>Default — 6 seconds</option>
+              <option value={10000}>Slow — 10 seconds</option>
+              <option value={15000}>Very slow — 15 seconds</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="metric setting-card">
+          <p className="label">Portfolio Controls</p>
+
+          <div className="settings-actions vertical-actions">
             <button className="secondary-button" onClick={fetchPortfolio}>
               Refresh Portfolio
+            </button>
+
+            <button className="secondary-button" onClick={loadDemoPortfolio}>
+              {tradeLoading ? "Loading Demo..." : "Load Demo Portfolio"}
             </button>
 
             <button className="danger-button" onClick={resetPortfolio}>
               Reset Portfolio
             </button>
           </div>
-        </section>
-      )}
+        </div>
+
+        <div className="metric setting-card">
+          <p className="label">Browser Data</p>
+
+          <p className="muted">
+            Watchlist, journal notes and interface preferences are stored locally in your browser.
+          </p>
+
+          <button className="danger-button" onClick={resetLocalBrowserData}>
+            Clear Local Browser Data
+          </button>
+        </div>
+      </div>
+    </section>
+  )}
     </main>
     </div>
   </div>
