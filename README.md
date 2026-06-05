@@ -6,6 +6,36 @@ This project was built as a finance-focused software engineering portfolio proje
 
 ---
 
+## Screenshots
+
+### Backend API
+
+FastAPI backend with automatically generated API documentation and market/portfolio endpoints.
+
+![Backend API 1](docs/screenshots/visio-backend-1.png)
+
+![Backend API 2](docs/screenshots/visio-backend-2.png)
+
+---
+
+### Frontend Platform Showcase
+
+The React frontend includes a dashboard, market search, watchlist, portfolio holdings, trading ticket, analytics, company research, market news, education pages and settings.
+
+![Frontend Showcase 1](docs/screenshots/visio-frontend-1.png)
+
+![Frontend Showcase 2](docs/screenshots/visio-frontend-2.png)
+
+![Frontend Showcase 3](docs/screenshots/visio-frontend-3.png)
+
+![Frontend Showcase 4](docs/screenshots/visio-frontend-4.png)
+
+![Frontend Showcase 5](docs/screenshots/visio-frontend-5.png)
+
+![Frontend Showcase 6](docs/screenshots/visio-frontend-6.png)
+
+![Frontend Showcase 7](docs/screenshots/visio-frontend-7.png)
+
 ## Features
 
 ### Trading & Portfolio
