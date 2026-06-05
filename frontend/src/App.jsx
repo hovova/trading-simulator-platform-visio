@@ -278,6 +278,109 @@ const EDUCATION_TERMS = [
   },
 ];
 
+
+const DEMO_LEADERBOARD = [
+  {
+    rank: 1,
+    trader: "Momentum Max",
+    style: "Momentum",
+    portfolioValue: 116420,
+    returnPercent: 16.42,
+    totalPnl: 16420,
+    bestHolding: "NVDA",
+  },
+  {
+    rank: 2,
+    trader: "Value Hunter",
+    style: "Value",
+    portfolioValue: 109870,
+    returnPercent: 9.87,
+    totalPnl: 9870,
+    bestHolding: "MSFT",
+  },
+  {
+    rank: 3,
+    trader: "Dividend Pilot",
+    style: "Income",
+    portfolioValue: 106320,
+    returnPercent: 6.32,
+    totalPnl: 6320,
+    bestHolding: "KO",
+  },
+  {
+    rank: 4,
+    trader: "Risk Manager",
+    style: "Balanced",
+    portfolioValue: 103980,
+    returnPercent: 3.98,
+    totalPnl: 3980,
+    bestHolding: "AAPL",
+  },
+];
+
+const ECONOMIC_CALENDAR_EVENTS = [
+  {
+    date: "2026-06-10",
+    time: "13:30",
+    country: "US",
+    event: "Consumer Price Index",
+    impact: "High",
+    actual: "—",
+    forecast: "2.9%",
+    previous: "3.1%",
+  },
+  {
+    date: "2026-06-12",
+    time: "13:30",
+    country: "US",
+    event: "Initial Jobless Claims",
+    impact: "Medium",
+    actual: "—",
+    forecast: "220K",
+    previous: "218K",
+  },
+  {
+    date: "2026-06-18",
+    time: "19:00",
+    country: "US",
+    event: "Federal Reserve Rate Decision",
+    impact: "High",
+    actual: "—",
+    forecast: "4.50%",
+    previous: "4.50%",
+  },
+  {
+    date: "2026-06-19",
+    time: "12:00",
+    country: "UK",
+    event: "Bank of England Rate Decision",
+    impact: "High",
+    actual: "—",
+    forecast: "4.25%",
+    previous: "4.25%",
+  },
+  {
+    date: "2026-06-20",
+    time: "07:00",
+    country: "UK",
+    event: "Retail Sales",
+    impact: "Medium",
+    actual: "—",
+    forecast: "0.3%",
+    previous: "-0.2%",
+  },
+  {
+    date: "2026-06-24",
+    time: "09:00",
+    country: "EU",
+    event: "Euro Area PMI",
+    impact: "Medium",
+    actual: "—",
+    forecast: "51.2",
+    previous: "50.8",
+  },
+];
+
 const NAV_SECTIONS = [
   {
     title: "Trade",
@@ -299,7 +402,7 @@ const NAV_SECTIONS = [
         icon: CandlestickChart,
       },
       {
-        name: "Positions",
+        name: "Portfolio",
         icon: Briefcase,
       },
       {
@@ -407,6 +510,12 @@ function getPnLClass(value) {
   if (value > 0) return "positive";
   if (value < 0) return "negative";
   return "";
+}
+
+function getImpactClass(impact) {
+  if (impact === "High") return "impact-high";
+  if (impact === "Medium") return "impact-medium";
+  return "impact-low";
 }
 
 function getErrorMessage(error, fallback) {
@@ -584,6 +693,22 @@ const investedAllocationPercent =
   portfolioValue > 0
     ? ((portfolio?.summary?.total_market_value || 0) / portfolioValue) * 100
     : 0;
+
+const leaderboardRows = portfolio
+  ? [
+      ...DEMO_LEADERBOARD,
+      {
+        rank: "—",
+        trader: "Your Account",
+        style: "Paper Trading",
+        portfolioValue: portfolio.summary?.total_portfolio_value || 0,
+        returnPercent: portfolio.summary?.total_unrealised_return_percent || 0,
+        totalPnl: portfolio.summary?.total_pnl || 0,
+        bestHolding: bestHolding?.symbol || "N/A",
+        isUser: true,
+      },
+    ].sort((a, b) => b.returnPercent - a.returnPercent)
+  : DEMO_LEADERBOARD;
 
 const totalTrades = portfolio?.trades?.length || 0;
 const totalHoldings = holdingsArray.length;
@@ -1061,6 +1186,12 @@ useEffect(() => {
     fetchCompanyLogo(item.symbol);
   });
 }, [watchlist]);
+
+useEffect(() => {
+  holdingsArray.forEach((holding) => {
+    fetchCompanyLogo(holding.symbol);
+  });
+}, [portfolio]);
 
 useEffect(() => {
   if (marketNews.length <= 1) return;
@@ -1889,12 +2020,14 @@ return (
   )}
     
 
-      {activePage === "Positions" && (
+      {activePage === "Portfolio" && (
         <section className="card">
           <div className="card-header">
             <div>
-              <h2>Positions</h2>
-              <p className="muted">Current open simulated positions.</p>
+              <h2>Portfolio Holdings</h2>
+              <p className="muted">
+                All stocks currently owned in your simulated portfolio.
+              </p>
             </div>
           </div>
 
@@ -1903,6 +2036,7 @@ return (
               <table>
                 <thead>
                   <tr>
+                    <th>Company</th>
                     <th>Symbol</th>
                     <th>Qty</th>
                     <th>Avg Price</th>
@@ -1910,6 +2044,7 @@ return (
                     <th>Market Value</th>
                     <th>P&L</th>
                     <th>Return</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
 
@@ -1918,21 +2053,61 @@ return (
                     <tr key={ticker}>
                       <td>
                         <button
-                          className="link-button"
+                          className="company-cell-button"
                           onClick={() => fetchCompanyDetails(ticker)}
                         >
-                          {ticker}
+                          {companyLogos[ticker] ? (
+                            <img
+                              src={companyLogos[ticker]}
+                              alt={ticker}
+                              className="mini-company-logo"
+                            />
+                          ) : (
+                            <span className="mini-company-logo logo-placeholder">
+                              {ticker?.slice(0, 1)}
+                            </span>
+                          )}
+
+                          <span>{ticker}</span>
                         </button>
                       </td>
+
+                      <td>{ticker}</td>
                       <td>{holding.quantity}</td>
                       <td>{formatMoney(holding.average_price)}</td>
                       <td>{formatMoney(holding.current_price)}</td>
                       <td>{formatMoney(holding.market_value)}</td>
+
                       <td className={getPnLClass(holding.unrealised_pnl)}>
                         {formatMoney(holding.unrealised_pnl)}
                       </td>
+
                       <td className={getPnLClass(holding.unrealised_pnl)}>
                         {formatPercent(holding.unrealised_return_percent)}
+                      </td>
+
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            className="quote-trade-button compact-button"
+                            onClick={() =>
+                              selectStockResult({
+                                symbol: ticker,
+                                description: ticker,
+                                type: "Common Stock",
+                              })
+                            }
+                          >
+                            Quote / Trade
+                          </button>
+
+                          <button
+                            className="secondary-button compact-button"
+                            onClick={() => fetchCompanyDetails(ticker)}
+                          >
+                            Company
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2310,13 +2485,49 @@ return (
       <div>
         <h2>Economic Calendar</h2>
         <p className="muted">
-          Upcoming macroeconomic events, earnings dates and market catalysts will appear here.
+          Demo macro calendar for tracking major market-moving events.
         </p>
       </div>
     </div>
 
+    <div className="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Country</th>
+            <th>Event</th>
+            <th>Impact</th>
+            <th>Actual</th>
+            <th>Forecast</th>
+            <th>Previous</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {ECONOMIC_CALENDAR_EVENTS.map((event) => (
+            <tr key={`${event.date}-${event.event}`}>
+              <td>{event.date}</td>
+              <td>{event.time}</td>
+              <td>{event.country}</td>
+              <td>{event.event}</td>
+              <td>
+                <span className={`impact-badge ${getImpactClass(event.impact)}`}>
+                  {event.impact}
+                </span>
+              </td>
+              <td>{event.actual}</td>
+              <td>{event.forecast}</td>
+              <td>{event.previous}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
     <p className="empty-state">
-      Calendar module coming next: economic releases, earnings calendar, IPO calendar and dividend events.
+      Calendar data is currently demo data for UI presentation. A future version can connect a live macroeconomic calendar API.
     </p>
   </section>
 )}
@@ -2327,13 +2538,50 @@ return (
             <div>
               <h2>Leaderboard</h2>
               <p className="muted">
-                Compare simulated portfolio performance by return, P&L and account value.
+                Demo ranking of simulated traders by portfolio return.
               </p>
             </div>
           </div>
 
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Trader</th>
+                  <th>Style</th>
+                  <th>Portfolio Value</th>
+                  <th>Return</th>
+                  <th>Total P&L</th>
+                  <th>Best Holding</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {leaderboardRows.map((row, index) => (
+                  <tr
+                    key={`${row.trader}-${index}`}
+                    className={row.isUser ? "user-leaderboard-row" : ""}
+                  >
+                    <td>{index + 1}</td>
+                    <td>{row.trader}</td>
+                    <td>{row.style}</td>
+                    <td>{formatMoney(row.portfolioValue)}</td>
+                    <td className={getPnLClass(row.returnPercent)}>
+                      {row.returnPercent.toFixed(2)}%
+                    </td>
+                    <td className={getPnLClass(row.totalPnl)}>
+                      {formatMoney(row.totalPnl)}
+                    </td>
+                    <td>{row.bestHolding}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           <p className="empty-state">
-            Leaderboard module coming soon. First version will use demo traders, then later user accounts.
+            This is a local demo leaderboard for presentation. A future version could connect real user accounts.
           </p>
         </section>
       )}
@@ -2617,7 +2865,7 @@ return (
       </>
     ) : (
       <p className="empty-state">
-        Select a company from Markets, Watchlist or Positions to view details.
+        Select a company from Markets, Watchlist or Portfolio to view details.
       </p>
     )}
   </section>

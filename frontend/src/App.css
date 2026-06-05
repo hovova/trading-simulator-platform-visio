@@ -1178,6 +1178,44 @@ td {
   font-size: 13px;
 }
 
+.user-leaderboard-row {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.user-leaderboard-row td {
+  color: #f8fafc;
+}
+
+.impact-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.impact-high {
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+}
+
+.impact-medium {
+  color: #fdba74;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(251, 146, 60, 0.28);
+}
+
+.impact-low {
+  color: #86efac;
+  background: rgba(22, 163, 74, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+}
+
 
 @media (max-width: 640px) {
   .ticket-estimates {
